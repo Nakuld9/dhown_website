@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" width="400" height="250"><rect width="400" height="250" fill="#061730"/><defs><radialGradient id="vig" cx="50%" cy="50%" r="68%"><stop offset="0%" stop-color="transparent"/><stop offset="100%" stop-color="#061730" stop-opacity="0.6"/></radialGradient><pattern id="p" x="0" y="0" width="24" height="20" patternUnits="userSpaceOnUse">
+  <rect x="0" y="0" width="24" height="7" fill="rgba(225,29,72,0.22)" rx="1"/>
+  <rect x="0" y="9" width="24" height="4" fill="rgba(225,29,72,0.14)" rx="0.5"/>
+  <rect x="0" y="15" width="24" height="5" fill="rgba(225,29,72,0.2)" rx="1"/>
+  <line x1="0" y1="0" x2="24" y2="0" stroke="rgba(225,29,72,0.5)" stroke-width="1.2"/>
+  <line x1="0" y1="7" x2="24" y2="7" stroke="rgba(225,29,72,0.3)" stroke-width="0.8"/>
+  <line x1="0" y1="9" x2="24" y2="9" stroke="rgba(225,29,72,0.38)" stroke-width="0.9"/>
+  <line x1="0" y1="13" x2="24" y2="13" stroke="rgba(225,29,72,0.25)" stroke-width="0.7"/>
+  <line x1="0" y1="15" x2="24" y2="15" stroke="rgba(225,29,72,0.42)" stroke-width="1"/>
+  <line x1="0" y1="20" x2="24" y2="20" stroke="rgba(225,29,72,0.35)" stroke-width="0.9"/>
+</pattern></defs><rect width="400" height="250" fill="url(#p)"/><rect width="400" height="250" fill="url(#vig)"/></svg>
