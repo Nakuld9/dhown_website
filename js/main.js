@@ -337,6 +337,11 @@ function openModal(code) {
   if (!p || !modal) return;
 
   document.getElementById('modal-visual').className = 'modal-visual ' + p.bgClass;
+  const modalImg = document.getElementById('modal-img');
+  if (modalImg) {
+    modalImg.src = `images/fabric-${code.toLowerCase()}.svg`;
+    modalImg.alt = `${p.name} fabric texture`;
+  }
   document.getElementById('modal-code').textContent = code;
   document.getElementById('modal-badge').textContent = code;
   document.getElementById('modal-title').textContent = p.name;
