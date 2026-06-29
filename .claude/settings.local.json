@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:share.google)",
+      "WebFetch(domain:www.google.com)",
+      "Bash(netlify --version)",
+      "Bash(git -C \"D:/DHOWN_WEBSITE\" status)",
+      "PowerShell(npm *)",
+      "Bash(npx netlify-cli *)",
+      "PowerShell(netlify *)"
+    ]
+  }
+}
