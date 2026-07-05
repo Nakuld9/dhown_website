@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" width="400" height="250"><rect width="400" height="250" fill="#061730"/><defs><radialGradient id="vig" cx="50%" cy="50%" r="68%"><stop offset="0%" stop-color="transparent"/><stop offset="100%" stop-color="#061730" stop-opacity="0.6"/></radialGradient><pattern id="p" x="0" y="0" width="20" height="16" patternUnits="userSpaceOnUse">
+  <path d="M0,10 C4,3 8,3 10,10 C12,3 16,3 20,10" fill="none" stroke="rgba(244,174,31,0.6)" stroke-width="2" stroke-linecap="round"/>
+  <path d="M-10,18 C-6,11 -2,11 0,18" fill="none" stroke="rgba(244,174,31,0.35)" stroke-width="2" stroke-linecap="round"/>
+  <path d="M10,18 C14,11 18,11 20,18" fill="none" stroke="rgba(244,174,31,0.35)" stroke-width="2" stroke-linecap="round"/>
+  <line x1="10" y1="10" x2="10" y2="18" stroke="rgba(244,174,31,0.2)" stroke-width="1.2"/>
+  <line x1="0" y1="10" x2="0" y2="18" stroke="rgba(244,174,31,0.15)" stroke-width="1"/>
+  <line x1="20" y1="10" x2="20" y2="18" stroke="rgba(244,174,31,0.15)" stroke-width="1"/>
+</pattern></defs><rect width="400" height="250" fill="url(#p)"/><rect width="400" height="250" fill="url(#vig)"/></svg>

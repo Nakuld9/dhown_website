@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" width="400" height="250"><rect width="400" height="250" fill="#061730"/><defs><radialGradient id="vig" cx="50%" cy="50%" r="68%"><stop offset="0%" stop-color="transparent"/><stop offset="100%" stop-color="#061730" stop-opacity="0.6"/></radialGradient><pattern id="p" x="0" y="0" width="20" height="18" patternUnits="userSpaceOnUse">
+  <circle cx="10" cy="9" r="3.5" fill="rgba(8,16,38,0.88)" stroke="rgba(249,115,22,0.6)" stroke-width="1.5"/>
+  <circle cx="10" cy="9" r="1" fill="rgba(249,115,22,0.15)"/>
+  <line x1="0" y1="0" x2="20" y2="0" stroke="rgba(249,115,22,0.22)" stroke-width="0.8"/>
+  <line x1="0" y1="18" x2="20" y2="18" stroke="rgba(249,115,22,0.22)" stroke-width="0.8"/>
+  <line x1="0" y1="0" x2="0" y2="18" stroke="rgba(249,115,22,0.18)" stroke-width="0.8"/>
+  <line x1="20" y1="0" x2="20" y2="18" stroke="rgba(249,115,22,0.18)" stroke-width="0.8"/>
+  <line x1="10" y1="0" x2="10" y2="5.5" stroke="rgba(249,115,22,0.12)" stroke-width="0.6"/>
+  <line x1="10" y1="12.5" x2="10" y2="18" stroke="rgba(249,115,22,0.12)" stroke-width="0.6"/>
+</pattern></defs><rect width="400" height="250" fill="url(#p)"/><rect width="400" height="250" fill="url(#vig)"/></svg>
