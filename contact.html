@@ -8,16 +8,6 @@
   <link rel="canonical" href="https://dhownhosiery.com/contact.html" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧶</text></svg>" />
   <link rel="stylesheet" href="css/style.css" />
-  <!-- Netlify Forms hidden trigger -->
-  <form name="enquiry" netlify netlify-honeypot="bot-field" hidden>
-    <input type="text" name="name" />
-    <input type="text" name="company" />
-    <input type="email" name="email" />
-    <input type="tel" name="phone" />
-    <select name="fabric"></select>
-    <input type="text" name="quantity" />
-    <textarea name="message"></textarea>
-  </form>
 </head>
 <body>
 
@@ -62,9 +52,11 @@
         <h2>Send an Enquiry</h2>
         <div class="sub">Tell us what you need — fabric type, quantity, and specifications. We'll get back to you with pricing and availability.</div>
 
-        <form name="enquiry" id="enquiry-form" method="POST" netlify netlify-honeypot="bot-field">
-          <input type="hidden" name="form-name" value="enquiry" />
-          <p style="display:none;"><label>Don't fill this: <input name="bot-field" /></label></p>
+        <form name="enquiry" id="enquiry-form" method="POST" action="https://formspree.io/f/xlgyzbpg">
+          <!-- Optional hidden inputs for Formspree -->
+          <input type="hidden" name="_subject" value="New Enquiry from DHOWN Website" />
+          <!-- Honeypot field (optional) -->
+          <input type="text" name="_gotcha" style="display:none" />
 
           <div class="form-row">
             <div class="form-group">
@@ -140,7 +132,7 @@
           <button type="submit" class="btn btn-gold" style="width:100%;justify-content:center;padding:16px;">
             Send Enquiry →
           </button>
-          <div id="form-success" class="form-success">
+          <div id="form-success" class="form-success" style="display:none;">
             ✅ Thank you! Your enquiry has been received. We'll respond within 24 hours.
           </div>
         </form>

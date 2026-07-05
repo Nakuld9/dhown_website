@@ -38,7 +38,7 @@ document.querySelectorAll('.nav-link, .nav-mobile .nav-link').forEach(link => {
   }
 });
 
-// ── Netlify form AJAX ──────────────────────────────
+// ── Formspree form AJAX ──────────────────────────────
 const form = document.getElementById('enquiry-form');
 form?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -47,12 +47,19 @@ form?.addEventListener('submit', async (e) => {
   btn.textContent = 'Sending...';
   try {
     const data = new FormData(form);
-    await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(data).toString() });
+    await fetch(form.action, {
+      method: 'POST',
+      body: data,
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
     form.reset();
     const success = document.getElementById('form-success');
     if (success) { success.style.display = 'block'; }
     btn.textContent = 'Sent!';
-  } catch {
+  } catch (err) {
+    console.error(err);
     btn.textContent = 'Send Enquiry';
     btn.disabled = false;
     alert('Something went wrong. Please email us directly.');
@@ -311,75 +318,20 @@ const PRODUCTS = {
     gauge: '18 – 24 GG',
     yarn: 'Cotton, CVC, Polyester blends',
     construction: 'Tuck and knit stitch combination creating hexagonal cells',
-    properties: ['3D hexagonal surface pattern', 'Breathable air pockets', 'Structured and firm', 'Good shape retention', 'Distinctive premium texture'],
-    applications: ['Polo Shirts', 'Casual Wear', 'Fashion Tops', 'Corporate Wear', 'Premium T-Shirts'],
-    bgClass: 'fabric-honey-bg',
-  },
-  FN: {
-    name: 'Fancy Structures',
-    subtitle: 'Custom Engineered Knit Constructions',
-    desc: 'Complex multi-stitch constructions developed for fashion and export. Includes jacquard effects, engineered texture combinations, mixed-gauge structures, and custom repeat patterns. Each design is developed to your brief and sampled before bulk production.',
-    gsm: 'Custom — per design brief',
-    gauge: 'Custom — per pattern requirement',
-    yarn: 'Any — Cotton, Polyester, CVC, Bamboo, Spandex, blends',
-    construction: 'Multi-stitch: Jacquard, tuck, float, plating combinations',
-    properties: ['Fully custom construction', 'Premium aesthetic appeal', 'Unique texture and pattern', 'Export-quality execution', 'Sample before bulk'],
-    applications: ['Fashion Wear', 'Premium Export Collections', 'Designer Collaborations', 'Custom Brand Projects', 'Luxury Garments'],
-    bgClass: 'fabric-fancy-bg',
-  },
+    properties: ['3D hexagonal surface pattern', 'Breathability', 'Visual and tactile interest'],
+    applications: ['Casual Wear', 'Sportswear', 'Undergarments'],
+    bgClass: 'fabric-hc-bg',
+  }
 };
 
-const modal      = document.getElementById('fabric-modal');
-const modalPanel = modal?.querySelector('.modal-panel');
-
-function openModal(code) {
-  const p = PRODUCTS[code];
-  if (!p || !modal) return;
-
-  document.getElementById('modal-visual').className = 'modal-visual ' + p.bgClass;
-  document.getElementById('modal-code').textContent = code;
-  document.getElementById('modal-badge').textContent = code;
-  document.getElementById('modal-title').textContent = p.name;
-  document.getElementById('modal-subtitle').textContent = p.subtitle;
-  document.getElementById('modal-desc').textContent = p.desc;
-
-  document.getElementById('modal-specs').innerHTML = [
-    { label: 'GSM Range',     val: p.gsm },
-    { label: 'Gauge',         val: p.gauge },
-    { label: 'Construction',  val: p.construction },
-    { label: 'Yarn Types',    val: p.yarn },
-  ].map(s => `<div class="modal-spec-item"><div class="modal-spec-label">${s.label}</div><div class="modal-spec-val">${s.val}</div></div>`).join('');
-
-  document.getElementById('modal-props').innerHTML =
-    p.properties.map(pr => `<span class="modal-prop">${pr}</span>`).join('');
-
-  document.getElementById('modal-apps').innerHTML =
-    p.applications.map(a => `<span class="modal-app">${a}</span>`).join('');
-
-  const wa = encodeURIComponent(`Hello, I am interested in your ${p.name} fabric. Please share GSM, gauge, and pricing details.`);
-  document.getElementById('modal-enquire').href = `contact.html?fabric=${code}`;
-  document.getElementById('modal-wa').href = `https://wa.me/918360180643?text=${wa}`;
-
-  modal.classList.add('open');
-  document.body.style.overflow = 'hidden';
-  modalPanel?.scrollTo(0, 0);
-}
-
-function closeModal() {
-  modal?.classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-document.querySelectorAll('.product-card[data-product]').forEach(card => {
-  card.addEventListener('click', () => openModal(card.dataset.product));
+// Example usage: open modal on product card click (if needed)
+/*
+document.querySelectorAll('[data-product]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const code = btn.dataset.product;
+    const product = PRODUCTS[code];
+    if (!product) return;
+    // populate modal...
+  });
 });
-
-modal?.querySelector('.modal-close')?.addEventListener('click', closeModal);
-
-modal?.addEventListener('click', (e) => {
-  if (e.target === modal) closeModal();
-});
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeModal();
-});
+*/
