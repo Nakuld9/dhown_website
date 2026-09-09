@@ -346,8 +346,12 @@ function openModal(code) {
   document.getElementById('modal-visual').className = 'modal-visual ' + p.bgClass;
   const modalImg = document.getElementById('modal-img');
   if (modalImg) {
-    modalImg.src = `images/fabric-${code.toLowerCase()}.svg`;
-    modalImg.alt = `${p.name} fabric texture`;
+    // Mirror whatever the product card shows, so fabrics that have a real
+    // photo open with the photo and the rest fall back to the placeholder.
+    const card = document.querySelector(`.product-card[data-product="${code}"] .product-img`)
+              || document.querySelector(`img[src*="fabric-${code.toLowerCase()}."]`);
+    modalImg.src = card ? card.getAttribute('src') : `images/fabric-${code.toLowerCase()}.svg`;
+    modalImg.alt = card ? card.getAttribute('alt') : `${p.name} fabric texture`;
   }
   document.getElementById('modal-code').textContent = code;
   document.getElementById('modal-badge').textContent = code;

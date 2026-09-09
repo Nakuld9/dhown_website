@@ -3,3 +3,8 @@
 
 # Local Claude Code settings
 .claude/settings.local.json
+
+# Raw fabric photos — originals stay local. tools/build-fabric-photos.py
+# emits images/fabric-<code>.jpg, and that is what gets deployed.
+images/fabrics/*
+!images/fabrics/SHOOT-LIST.md
