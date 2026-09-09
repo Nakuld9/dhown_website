@@ -8,3 +8,5 @@
 # emits images/fabric-<code>.jpg, and that is what gets deployed.
 images/fabrics/*
 !images/fabrics/SHOOT-LIST.md
+images/facility/*
+!images/facility/SHOOT-LIST.md
