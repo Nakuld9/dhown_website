@@ -1,0 +1,6 @@
+# https://dhownhosiery.com/robots.txt
+User-agent: *
+Allow: /
+Disallow: /.netlify/
+
+Sitemap: https://dhownhosiery.com/sitemap.xml

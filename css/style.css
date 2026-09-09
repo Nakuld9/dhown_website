@@ -3,7 +3,8 @@
    Brand: Gold #f4ae1f | Navy #020d1a | Steel #7da2d6
    ══════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Open+Sans:wght@400;500;600&display=swap');
+/* Fonts are loaded in each page's <head> (preconnect + stylesheet) so they
+   don't wait on this file to download first. */
 
 /* ── Variables ─────────────────────────────────────── */
 :root {
@@ -151,9 +152,15 @@ ul { list-style: none; }
 .nav-inner { max-width: 1200px; width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
 
 .nav-logo {
-  display: flex; flex-direction: column; line-height: 1;
-  font-family: var(--font-head);
+  display: flex; flex-direction: row; align-items: center; gap: 11px;
+  line-height: 1; font-family: var(--font-head);
 }
+.nav-logo-text { display: flex; flex-direction: column; line-height: 1; }
+
+/* Brand mark — inherits colour so it can be re-tinted per context. */
+.brand-mark { flex: none; color: var(--gold); transition: var(--transition); }
+.nav-logo .brand-mark { width: 34px; height: 34px; }
+.nav-logo:hover .brand-mark { color: var(--gold-light); }
 .nav-logo-top { font-size: 20px; font-weight: 900; color: var(--gold); letter-spacing: 2px; }
 .nav-logo-sub { font-size: 9px; color: var(--steel); letter-spacing: 3px; text-transform: uppercase; margin-top: 2px; }
 
@@ -210,7 +217,7 @@ ul { list-style: none; }
   line-height: 1.1;
   margin-bottom: 24px;
 }
-.hero h1 .line-gold { color: var(--gold); display: block; }
+.line-gold { color: var(--gold); display: block; }
 .hero-sub { font-size: 18px; color: var(--text-soft); margin-bottom: 36px; max-width: 480px; line-height: 1.7; }
 .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
 
@@ -515,6 +522,11 @@ textarea.form-control { resize: vertical; min-height: 120px; }
   border-bottom: 1px solid var(--border);
   margin-bottom: 32px;
 }
+.footer-brand-lockup { display: flex; align-items: center; gap: 13px; margin-bottom: 16px; }
+.footer-brand-lockup .brand-mark { width: 44px; height: 44px; }
+.footer-brand-lockup .footer-brand-name,
+.footer-brand-lockup .footer-brand-sub { margin-bottom: 0; }
+
 .footer-brand-name { font-family: var(--font-head); font-size: 22px; font-weight: 900; color: var(--gold); letter-spacing: 2px; margin-bottom: 4px; }
 .footer-brand-sub { font-size: 11px; color: var(--steel); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; }
 .footer-brand-desc { color: var(--text-muted); font-size: 14px; line-height: 1.7; margin-bottom: 20px; }
