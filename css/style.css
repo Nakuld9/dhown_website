@@ -26,6 +26,28 @@
   --transition: 0.3s ease;
 }
 
+/* ── Icons ─────────────────────────────────────────── */
+/* Sized in em so each icon inherits the font-size its container already
+   set for the emoji it replaced, and coloured by currentColor. */
+.icon-sprite { display: none; }
+.ico {
+  width: 1em; height: 1em;
+  display: inline-block; vertical-align: -0.145em; flex-shrink: 0;
+  fill: none; stroke: currentColor;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  overflow: visible;
+}
+.ico-fill { fill: currentColor; stroke: none; }
+
+/* Buttons set a small uppercase font-size; nudge their icons up so the
+   glyph carries the same visual weight the emoji did. */
+.btn .ico { width: 1.25em; height: 1.25em; vertical-align: -0.25em; }
+
+/* Footer social buttons: muted by default, gold on hover to match the
+   border treatment already on .social-btn:hover. */
+.social-btn { color: var(--text-muted); }
+.social-btn:hover { color: var(--gold); }
+
 /* ── Reset ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -393,7 +415,7 @@ ul { list-style: none; }
   text-align: center; transition: var(--transition);
 }
 .why-card:hover { border-color: rgba(244,174,31,0.4); transform: translateY(-4px); }
-.why-icon { font-size: 40px; margin-bottom: 16px; }
+.why-icon { font-size: 40px; margin-bottom: 16px; color: var(--gold); line-height: 1; }
 .why-card h3 { font-family: var(--font-head); font-size: 18px; font-weight: 700; margin-bottom: 12px; }
 .why-card p { color: var(--text-muted); font-size: 14px; line-height: 1.7; }
 
@@ -436,7 +458,7 @@ ul { list-style: none; }
   border-radius: 10px; padding: 28px; transition: var(--transition);
 }
 .value-card:hover { border-color: rgba(244,174,31,0.3); }
-.value-icon { font-size: 32px; margin-bottom: 12px; }
+.value-icon { font-size: 32px; margin-bottom: 12px; color: var(--gold); line-height: 1; }
 .value-card h4 { font-family: var(--font-head); font-size: 16px; font-weight: 700; margin-bottom: 8px; }
 .value-card p { color: var(--text-muted); font-size: 14px; line-height: 1.6; }
 
