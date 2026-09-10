@@ -374,7 +374,7 @@ function openModal(code) {
 
   const wa = encodeURIComponent(`Hello, I am interested in your ${p.name} fabric. Please share GSM, gauge, and pricing details.`);
   document.getElementById('modal-enquire').href = `contact.html?fabric=${code}`;
-  document.getElementById('modal-wa').href = `https://wa.me/918360180643?text=${wa}`;
+  document.getElementById('modal-wa').href = `/whatsapp?text=${wa}`;
 
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';

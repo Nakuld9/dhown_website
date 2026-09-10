@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Opening WhatsApp — DHOWN Hosiery Mills</title>
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#020d1a" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<style>
+  /* Deliberately self-contained: no external CSS or JS, so the page paints
+     and its analytics beacon fires as fast as possible before we forward. */
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;display:flex;align-items:center;justify-content:center;
+       background:#020d1a;color:#fff;text-align:center;padding:24px;
+       font:400 16px/1.6 "Open Sans",system-ui,-apple-system,Segoe UI,sans-serif}
+  .mark{width:74px;height:74px;color:#f4ae1f;margin:0 auto 22px}
+  h1{font:800 21px/1.3 "Montserrat",system-ui,sans-serif;letter-spacing:.4px;margin-bottom:10px}
+  p{color:#94a3b8;font-size:14px;margin-bottom:26px}
+  .dots span{display:inline-block;width:7px;height:7px;margin:0 3px;border-radius:50%;
+             background:#f4ae1f;animation:b 1.4s infinite ease-in-out both}
+  .dots span:nth-child(1){animation-delay:-.32s}
+  .dots span:nth-child(2){animation-delay:-.16s}
+  @keyframes b{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+  a.go{display:inline-block;margin-top:26px;background:#25d366;color:#04220f;
+       text-decoration:none;padding:13px 26px;border-radius:8px;
+       font:700 13px "Montserrat",system-ui,sans-serif;letter-spacing:1px;text-transform:uppercase}
+  .fallback{margin-top:18px;font-size:12.5px;color:#64748b}
+  .fallback a{color:#7da2d6}
+  @media (prefers-reduced-motion:reduce){.dots span{animation:none;opacity:1;transform:none}}
+</style>
+</head>
+<body>
+  <main>
+    <svg class="mark" viewBox="0 0 1000 1000" aria-hidden="true">
+      <path fill="currentColor" fill-rule="evenodd" d="M499.6,64.71 L503.22,65.92 L558.68,162.38 L971.06,882.64 L995.98,923.63 L1000,931.67 L999.6,934.49 L931.27,935.29 L926.85,931.67 L507.23,203.38 L501.21,195.74 L495.18,202.57 L469.45,249.2 L864.15,932.48 L862.14,935.29 L791.4,935.29 L786.98,931.67 L432.07,316.32 L426.85,320.74 L401.93,364.15 L400.32,367.36 L401.13,372.99 L724.28,932.48 L723.07,935.29 L648.31,935.29 L642.28,929.26 L325.56,368.97 L350.48,322.35 L499.6,64.71 Z M312.3,389.47 L316.72,391.48 L323.95,403.54 L327.17,411.58 L487.94,692.93 L539.39,786.17 L555.47,811.9 L555.47,814.31 L606.91,905.14 L610.13,908.36 L610.13,910.77 L622.99,931.67 L622.59,934.49 L562.3,935.29 L556.27,931.67 L442.93,733.92 L432.07,718.25 L367.77,754.42 L365.76,758.84 L397.91,811.9 L467.04,933.28 L461.82,935.29 L390.27,934.49 L381.83,922.03 L196.14,592.44 L230.71,531.35 L234.32,529.34 L330.39,693.73 L330.39,696.14 L334.81,700.56 L391.88,668.41 L401.13,661.58 L278.94,450.16 L279.74,446.14 L312.3,389.47 Z M183.68,613.75 L188.91,618.17 L207.4,650.32 L241.16,712.22 L278.94,776.53 L278.94,778.94 L361.74,922.83 L366.56,934.08 L362.14,935.29 L1.21,935.29 L0,933.28 L12.06,911.58 L183.68,613.75 Z M182.88,736.74 L104.5,873.79 L108.92,875.8 L260.85,875.8 L262.86,872.19 L211.41,783.76 L191.32,745.98 L186.5,737.94 L182.88,736.74 Z"/>
+    </svg>
+    <h1>Opening WhatsApp</h1>
+    <p>Taking you to our chat &mdash; one moment.</p>
+    <div class="dots" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div><a class="go" id="go" href="https://wa.me/918360180643">Open WhatsApp now</a></div>
+    <p class="fallback">Not working? Message us on
+      <a href="tel:+918360180643">+91 83601 80643</a>.</p>
+  </main>
+
+<script>
+(function () {
+  var PHONE = "918360180643";
+  var text = new URLSearchParams(location.search).get("text") || "";
+  var dest = "https://wa.me/" + PHONE + (text ? "?text=" + encodeURIComponent(text) : "");
+
+  document.getElementById("go").href = dest;
+
+  /* This page exists so the click registers as a pageview in Cloudflare Web
+     Analytics, which has no custom-event API. Hold just long enough for the
+     edge-injected beacon to report, then forward — polling for the RUM call
+     so a fast beacon means a fast redirect, with a hard cap either way. */
+  var sent = false;
+  function go() { if (!sent) { sent = true; location.replace(dest); } }
+
+  function reported() {
+    try {
+      return performance.getEntriesByType("resource").some(function (r) {
+        return /cloudflareinsights\.com/.test(r.name) && r.responseEnd > 0;
+      });
+    } catch (e) { return false; }
+  }
+
+  var waited = 0;
+  var poll = setInterval(function () {
+    waited += 100;
+    if (reported() || waited >= 1600) { clearInterval(poll); setTimeout(go, 120); }
+  }, 100);
+
+  setTimeout(go, 2500);   // last-resort cap
+})();
+</script>
+<noscript>
+  <style>.dots,#go{display:none}</style>
+  <p style="margin-top:20px"><a class="go" href="https://wa.me/918360180643"
+     style="display:inline-block">Open WhatsApp</a></p>
+</noscript>
+</body>
+</html>
