@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>BUSY Bridge</title>
+<link rel="stylesheet" href="/dashboard/dashboard.css">
+</head>
+<body>
+
+<div id="gate" class="gate">
+  <form class="gate__card" id="gate-form">
+    <h1>DHOWN BUSY Bridge</h1>
+    <p class="muted">Administrative access. Enter your bridge admin key.</p>
+    <label for="key-input">Admin key</label>
+    <input id="key-input" type="password" autocomplete="off" spellcheck="false" required>
+    <button type="submit">Unlock</button>
+    <p class="gate__error" id="gate-error" hidden></p>
+    <p class="gate__note">
+      The key is held in this browser tab only, is never written to disk, and is
+      cleared when the tab closes.
+    </p>
+  </form>
+</div>
+
+<div id="app" hidden>
+  <header class="topbar">
+    <div>
+      <h1>BUSY Bridge</h1>
+      <p class="muted" id="adapter-line">&nbsp;</p>
+    </div>
+    <div class="topbar__actions">
+      <span class="stamp" id="refreshed">&nbsp;</span>
+      <button class="btn btn--ghost" id="btn-test">Test connection</button>
+      <button class="btn btn--ghost" id="btn-reconcile-run">Run reconciliation</button>
+      <button class="btn btn--ghost" id="btn-tick">Process queue now</button>
+      <button class="btn btn--ghost" id="btn-lock">Lock</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="tiles" aria-label="Status summary">
+      <div class="tile tile--wide" id="tile-connection">
+        <span class="tile__label">BUSY connection</span>
+        <span class="tile__value" id="v-connection">—</span>
+        <span class="tile__sub" id="v-connection-sub"></span>
+      </div>
+      <div class="tile tile--wide">
+        <span class="tile__label">Last successful sync</span>
+        <span class="tile__value" id="v-lastsync">—</span>
+        <span class="tile__sub" id="v-lastsync-sub"></span>
+      </div>
+      <div class="tile"><span class="tile__label">Pending</span><span class="tile__value" id="v-pending">0</span></div>
+      <div class="tile"><span class="tile__label">Processing</span><span class="tile__value" id="v-processing">0</span></div>
+      <div class="tile"><span class="tile__label">Awaiting BUSY</span><span class="tile__value" id="v-awaiting">0</span></div>
+      <div class="tile"><span class="tile__label">Successful</span><span class="tile__value tile__value--ok" id="v-success">0</span></div>
+      <div class="tile"><span class="tile__label">Failed</span><span class="tile__value tile__value--bad" id="v-failed">0</span></div>
+      <div class="tile"><span class="tile__label">Manual review</span><span class="tile__value tile__value--warn" id="v-manual">0</span></div>
+      <div class="tile"><span class="tile__label">Today's transactions</span><span class="tile__value" id="v-today">0</span></div>
+    </section>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab is-active" data-tab="queue" role="tab">Queue</button>
+      <button class="tab" data-tab="mappings" role="tab">Mappings</button>
+      <button class="tab" data-tab="reconciliation" role="tab">Reconciliation</button>
+      <button class="tab" data-tab="audit" role="tab">Audit</button>
+      <button class="tab" data-tab="capabilities" role="tab">Capabilities</button>
+    </nav>
+
+    <section class="panel" id="panel-queue">
+      <div class="filters">
+        <select id="f-status">
+          <option value="">All statuses</option>
+          <option>PENDING</option><option>PROCESSING</option><option>AWAITING_BUSY</option>
+          <option>RETRY</option><option>SUCCESS</option><option>FAILED</option><option>MANUAL_REVIEW</option>
+        </select>
+        <input id="f-search" type="search" placeholder="Search reference, MES id, BUSY reference">
+      </div>
+      <div class="table-wrap"><table id="t-queue">
+        <thead><tr>
+          <th>External reference</th><th>Entity</th><th>MES id</th><th>Status</th>
+          <th class="num">Attempts</th><th>BUSY reference</th><th>Updated</th><th>Actions</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <p class="empty" id="queue-empty" hidden>Nothing queued.</p>
+    </section>
+
+    <section class="panel" id="panel-mappings" hidden>
+      <div class="filters">
+        <select id="f-map-entity">
+          <option value="">All types</option>
+          <option>CUSTOMER</option><option>VENDOR</option><option>ITEM</option><option>WAREHOUSE</option>
+        </select>
+        <label class="check"><input type="checkbox" id="f-map-unmapped"> Unmapped only</label>
+        <input id="f-map-search" type="search" placeholder="Search MES id, BUSY id or name">
+      </div>
+      <div class="table-wrap"><table id="t-mappings">
+        <thead><tr>
+          <th>Type</th><th>MES id</th><th>Name</th><th>BUSY id</th><th>BUSY code</th>
+          <th>Status</th><th>Last synced</th><th>Actions</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <p class="empty" id="map-empty" hidden>No mappings yet.</p>
+    </section>
+
+    <section class="panel" id="panel-reconciliation" hidden>
+      <div class="recon-summary" id="recon-summary"></div>
+      <div class="table-wrap"><table id="t-recon">
+        <thead><tr>
+          <th>Result</th><th>Entity</th><th>External reference</th><th>BUSY reference</th>
+          <th>Differences</th><th>When</th><th>Actions</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <p class="empty" id="recon-empty" hidden>No unresolved reconciliation findings.</p>
+    </section>
+
+    <section class="panel" id="panel-audit" hidden>
+      <div class="table-wrap"><table id="t-audit">
+        <thead><tr>
+          <th>When</th><th>Entity</th><th>External reference</th><th>Operation</th>
+          <th class="num">Attempt</th><th>Actor</th><th>Status</th><th>BUSY reference</th><th>Error</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <p class="empty" id="audit-empty" hidden>No audit entries yet.</p>
+    </section>
+
+    <section class="panel" id="panel-capabilities" hidden>
+      <p class="muted">
+        What the configured BUSY transport can actually do. Operations marked
+        unsupported are refused outright rather than faked — see
+        <code>docs/BUSY_INTEGRATION.md</code>.
+      </p>
+      <div class="table-wrap"><table id="t-caps">
+        <thead><tr><th>Operation</th><th>Supported</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <h3>Configuration</h3>
+      <pre id="cfg-dump" class="code"></pre>
+    </section>
+  </main>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="modal__box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <header><h2 id="modal-title">Details</h2><button class="btn btn--ghost" id="modal-close">Close</button></header>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="/dashboard/dashboard.js"></script>
+</body>
+</html>
