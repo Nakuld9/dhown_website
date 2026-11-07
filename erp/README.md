@@ -29,6 +29,10 @@ specified (pending-verification) Color Service dispensing integration.
   **configurable posting rules** map each business event to accounts.
 - **Accounting periods** (Indian FY, closed-period locks), **14 voucher types**,
   gap-free numbering, **trial balance** + **account ledger** drill-down.
+- **Financial statements** (Stage 7) — **Profit & Loss**, **Balance Sheet**
+  (balances by construction, folding current-year profit into equity),
+  **Cash Flow** (operating/investing/financing, ledger-derived), and **debtor /
+  creditor ageing** (FIFO allocation) — all derived from the posted ledger.
 
 **Operations (Stage 2–4)**
 - **Procurement** — chemical/dye GRN → FIFO stock layer + GST purchase voucher.
@@ -48,10 +52,11 @@ specified (pending-verification) Color Service dispensing integration.
 **Platform** — JWT auth + RBAC (15 roles), REST API, Alembic migrations,
 idempotent seed + demo data, Docker Compose.
 
-`44 passing tests` cover the accounting invariants, the nine worked posting
+`49 passing tests` cover the accounting invariants, the nine worked posting
 examples, correction dosing, RBAC, full-cycle trial balance, procurement,
 knitting, recipe scaling, the full dispensing cycle, end-to-end traceability,
-and the REST flow. See the acceptance-test map below.
+the financial statements (P&L / Balance Sheet / Cash Flow / ageing), and the
+REST flow. See the acceptance-test map below.
 
 ## Design documents (start here)
 
@@ -114,8 +119,8 @@ erp/
     │   ├── api/routes/        # auth, masters, accounts, vouchers, reports, operations
     │   └── seed/              # chart of accounts, RBAC, seeder, demo data
     ├── alembic/               # migrations (baseline from metadata)
-    └── tests/                 # 44 tests: invariants, posting matrix, TB, procurement,
-                               #   knitting, dyeing+dispensing, traceability, API
+    └── tests/                 # 49 tests: invariants, posting matrix, TB, procurement,
+                               #   knitting, dyeing+dispensing, traceability, statements, API
 ```
 
 ## Stage status (brief §22)
@@ -128,7 +133,7 @@ erp/
 | 4 | Color Service integration + bath-wise consumption | **Done via simulator** (live adapter pending vendor) |
 | 5 | Chemical inventory + inventory accounting | **Done** (FIFO valuation + GL reconciliation) |
 | 6 | Double-entry engine, chart of accounts, vouchers | **Done** (core + TB) |
-| 7 | GST, banking, financial statements, reconciliation | GST on invoices done; statements/banking pending |
+| 7 | GST, banking, financial statements, reconciliation | **P&L + Balance Sheet + Cash Flow + ageing done**; GST returns & bank-rec pending |
 | 8 | Costing, finishing, quality, dashboards | Cost centres + bath costing done; dashboards pending |
 | 9 | Reports, security hardening, deployment | RBAC + Docker + API done; report exports pending |
 
@@ -152,8 +157,9 @@ erp/
 | 15 | Trial balance debit == credit | ✅ `test_trial_balance…` |
 | 18 | Reconnect integration → no duplicates | ✅ `test_reconnect_does_not_duplicate` |
 | 19 | No unauthorized change to posted/dispensing data | ✅ `test_posted_*`, `test_rbac_*` |
+| 16 | Generate Profit & Loss and Balance Sheet | ✅ `test_profit_and_loss`, `test_balance_sheet_balances` |
 | 20 | Trace finished roll → order/yarn/machine/batch/bath/lot/GL | ✅ `test_full_chain_traceability` |
-| 14, 16, 17 | Bank reconciliation / P&L+BS / stock-GL reconciliation report | ⏳ partial — receipt postings & FIFO valuation exist; dedicated reports pending |
+| 14, 17 | Bank reconciliation / stock-GL reconciliation report | ⏳ partial — receipt postings & FIFO valuation exist; dedicated bank-rec & reconciliation reports pending |
 
 ## Non-negotiables honoured
 
