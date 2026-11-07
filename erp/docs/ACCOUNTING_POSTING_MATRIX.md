@@ -139,7 +139,8 @@ of which handler calls it.
 8. Atomic posting inside one DB transaction. ✅
 9. Unbalanced journals cannot commit. ✅
 10. Sub-ledgers via `party_type`/`party_id` + control accounts. ✅ (structure)
-11–12. Inventory & GST reconcile with the GL. ⏳ (reports land with modules)
+11. Inventory reconciles with the GL (FIFO sub-ledger vs control accounts). ✅
+12. GST registers reconcile with the GL (`gst.book_vs_gst_reconciliation`). ✅
 13. Closed periods block posting. ✅
 14. Complete audit trail. ✅
 15. Approvals via permission codes + `requires_approval` voucher flag. ✅/⏳
