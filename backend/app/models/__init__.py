@@ -46,6 +46,40 @@ from app.models.accounting import (  # noqa: F401
     VoucherType,
 )
 from app.models.audit import AuditLog, DocumentSequence  # noqa: F401
+from app.models.inventory import (  # noqa: F401
+    InventoryTransaction,
+    ItemType,
+    MoveDirection,
+    StockLayer,
+)
+from app.models.commercial import (  # noqa: F401
+    DocStatus,
+    GoodsReceiptNote,
+    GRNLine,
+    PurchaseOrder,
+    PurchaseOrderLine,
+    SalesInvoice,
+    SalesInvoiceLine,
+    SalesOrder,
+    SalesOrderLine,
+)
+from app.models.manufacturing import (  # noqa: F401
+    BatchStatus,
+    DyeBatch,
+    DyeBath,
+    FabricRoll,
+    KnittingProduction,
+    LabDip,
+    RollKind,
+    dye_batch_rolls,
+)
+from app.models.dispensing import (  # noqa: F401
+    DispensingCorrection,
+    DispensingDevice,
+    DispensingTransaction,
+    DosingStatus,
+    IntegrationEvent,
+)
 
 # Registering the guard activates the immutable-ledger Session listeners.
 from app.core import ledger_guard  # noqa: E402,F401

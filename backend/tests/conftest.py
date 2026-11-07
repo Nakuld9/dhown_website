@@ -43,6 +43,16 @@ def company(db):
 
 
 @pytest.fixture()
+def demo(db, company):
+    """Sample manufacturing masters + opening stock (Stage 2-4 tests)."""
+    from app.seed.demo import seed_manufacturing_demo
+
+    handles = seed_manufacturing_demo(db, company.id)
+    db.commit()
+    return handles
+
+
+@pytest.fixture()
 def admin(db):
     return db.execute(select(User).where(User.username == "admin")).scalar_one()
 

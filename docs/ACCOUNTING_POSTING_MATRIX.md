@@ -93,13 +93,21 @@ Example: sale ₹200,000 + GST 36,000.
 
 ---
 
-## Remaining configured events (engine ready) ⏳
+## Remaining configured events
+
+Implemented and tested since Stage 2–4 (via `app/services/*` and
+`accounting_posting_rules`): **Chemical GRN** (`CHEMICAL_GRN`), **Yarn issue**
+(`YARN_ISSUE`), **Knitting production → greige** (`KNITTING_PRODUCTION`),
+**Dispensing consumption** (`CHEMICAL_CONSUMPTION`/`DYE_CONSUMPTION`), **Sales
+invoice** (`SALES_INVOICE`). The rest below are engine-ready ⏳.
 
 | Event | Voucher | Dr → Cr (slots) |
 |---|---|---|
-| Yarn GRN | PI/SJ | yarn_inventory → GRN_clearing/supplier_payable |
-| Yarn issue to knitting | SJ | wip_yarn → yarn_inventory |
-| Knitting production → greige | SJ | greige_inventory → wip_yarn (+ wages to WIP) |
+| Chemical/Yarn GRN ✅ | PI | inventory + input_gst → supplier_payable |
+| Yarn issue to knitting ✅ | PJ | wip → yarn_inventory |
+| Knitting production → greige ✅ | PJ | greige_inventory → wip |
+| Dispensing consumption ✅ | PJ | wip → chemical/dye_inventory |
+| Sales invoice ✅ | SI | receivable → sales + output_gst |
 | Purchase return | DN | supplier_payable → inventory + input_gst_reversal |
 | Sales return / credit note | CN | sales_income + output_gst → customer_receivable |
 | Debit note (supplier) | DN | supplier_payable → expense/inventory adj |
