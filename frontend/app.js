@@ -941,6 +941,205 @@ function Purchase() {
   }));
 }
 
+// ---- transactions: knitting production ------------------------------------
+function Knitting() {
+  const machines = useList("/api/masters/machines?machine_type=KNITTING");
+  const yarns = useList("/api/masters/yarns");
+  const fabrics = useList("/api/masters/fabric-types");
+  const warehouses = useList("/api/masters/warehouses");
+  const orders = useList("/api/masters/sales-orders");
+  const [h, setH] = useState({
+    number: genNo("KP"),
+    machine_id: "",
+    yarn_id: "",
+    fabric_type_id: "",
+    sales_order_id: "",
+    production_date: new Date().toISOString().slice(0, 10),
+    produced_kg: "",
+    yarn_consumed_kg: "",
+    wastage_kg: "0"
+  });
+  const [rolls, setRolls] = useState([{
+    roll_no: "",
+    weight_kg: "",
+    warehouse_id: ""
+  }]);
+  const [res, setRes] = useState(null);
+  const [err, setErr] = useState("");
+  const setRoll = (i, k, v) => setRolls(rs => rs.map((r, j) => j === i ? {
+    ...r,
+    [k]: v
+  } : r));
+  const submit = async e => {
+    e.preventDefault();
+    setErr("");
+    setRes(null);
+    try {
+      const body = {
+        ...h,
+        sales_order_id: h.sales_order_id || null,
+        fabric_type_id: h.fabric_type_id || null,
+        rolls: rolls.map(r => ({
+          roll_no: r.roll_no,
+          weight_kg: r.weight_kg,
+          warehouse_id: r.warehouse_id || null
+        }))
+      };
+      const r = await api("/api/knitting/production", {
+        method: "POST",
+        body
+      });
+      setRes(r);
+      setH({
+        ...h,
+        number: genNo("KP")
+      });
+      setRolls([{
+        roll_no: "",
+        weight_kg: "",
+        warehouse_id: ""
+      }]);
+    } catch (ex) {
+      setErr(ex.message);
+    }
+  };
+  return /*#__PURE__*/React.createElement(Panel, {
+    title: "Knitting production (issues yarn, creates greige rolls)"
+  }, /*#__PURE__*/React.createElement("form", {
+    onSubmit: submit
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "row mb"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Doc number"), /*#__PURE__*/React.createElement("input", {
+    value: h.number,
+    onChange: e => setH({
+      ...h,
+      number: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Machine"), /*#__PURE__*/React.createElement(Opts, {
+    items: machines,
+    value: h.machine_id,
+    onChange: e => setH({
+      ...h,
+      machine_id: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Yarn"), /*#__PURE__*/React.createElement(Opts, {
+    items: yarns,
+    value: h.yarn_id,
+    onChange: e => setH({
+      ...h,
+      yarn_id: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Fabric type"), /*#__PURE__*/React.createElement(Opts, {
+    items: fabrics,
+    value: h.fabric_type_id,
+    onChange: e => setH({
+      ...h,
+      fabric_type_id: e.target.value
+    }),
+    placeholder: "\u2014"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Sales order"), /*#__PURE__*/React.createElement(Opts, {
+    items: orders,
+    value: h.sales_order_id,
+    onChange: e => setH({
+      ...h,
+      sales_order_id: e.target.value
+    }),
+    placeholder: "\u2014"
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "row mb"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Date"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: h.production_date,
+    onChange: e => setH({
+      ...h,
+      production_date: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Produced (kg)"), /*#__PURE__*/React.createElement("input", {
+    value: h.produced_kg,
+    onChange: e => setH({
+      ...h,
+      produced_kg: e.target.value
+    }),
+    placeholder: "250"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Yarn consumed (kg)"), /*#__PURE__*/React.createElement("input", {
+    value: h.yarn_consumed_kg,
+    onChange: e => setH({
+      ...h,
+      yarn_consumed_kg: e.target.value
+    }),
+    placeholder: "255"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Wastage (kg)"), /*#__PURE__*/React.createElement("input", {
+    value: h.wastage_kg,
+    onChange: e => setH({
+      ...h,
+      wastage_kg: e.target.value
+    }),
+    placeholder: "5"
+  }))), /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Roll no."), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Weight (kg)"), /*#__PURE__*/React.createElement("th", null, "Warehouse"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, rolls.map((r, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("input", {
+    value: r.roll_no,
+    onChange: e => setRoll(i, "roll_no", e.target.value),
+    placeholder: "R-0001"
+  })), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, /*#__PURE__*/React.createElement("input", {
+    style: {
+      width: 100
+    },
+    value: r.weight_kg,
+    onChange: e => setRoll(i, "weight_kg", e.target.value)
+  })), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(Opts, {
+    items: warehouses,
+    value: r.warehouse_id,
+    onChange: e => setRoll(i, "warehouse_id", e.target.value),
+    placeholder: "\u2014"
+  })), /*#__PURE__*/React.createElement("td", null, rolls.length > 1 && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "btn sec",
+    onClick: () => setRolls(rs => rs.filter((_, j) => j !== i))
+  }, "\u2715")))))), /*#__PURE__*/React.createElement("div", {
+    className: "row",
+    style: {
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "btn sec",
+    onClick: () => setRolls(rs => [...rs, {
+      roll_no: "",
+      weight_kg: "",
+      warehouse_id: ""
+    }])
+  }, "+ Add roll"), /*#__PURE__*/React.createElement("button", {
+    className: "btn"
+  }, "Record production")), err && /*#__PURE__*/React.createElement("div", {
+    className: "err"
+  }, err)), /*#__PURE__*/React.createElement(Result, {
+    r: res
+  }));
+}
+
 // ---- transactions: sales invoice ------------------------------------------
 function Sales() {
   const customers = useList("/api/masters/customers");
@@ -1406,6 +1605,10 @@ const PAGES = {
     t: "Purchase (GRN)",
     c: Purchase
   },
+  knitting: {
+    t: "Knitting Production",
+    c: Knitting
+  },
   sales: {
     t: "Sales Invoice",
     c: Sales
@@ -1466,7 +1669,7 @@ function App() {
     className: "group"
   }, "Dashboards"), navBtn("owner", "Owner"), navBtn("factory", "Factory"), navBtn("accounts", "Accounts"), navBtn("chemical", "Chemical"), /*#__PURE__*/React.createElement("div", {
     className: "group"
-  }, "Transactions"), navBtn("purchase", "Purchase (GRN)"), navBtn("sales", "Sales Invoice"), navBtn("dyeing", "Dyeing & Dispensing"), /*#__PURE__*/React.createElement("div", {
+  }, "Transactions"), navBtn("purchase", "Purchase (GRN)"), navBtn("knitting", "Knitting"), navBtn("sales", "Sales Invoice"), navBtn("dyeing", "Dyeing & Dispensing"), /*#__PURE__*/React.createElement("div", {
     className: "group"
   }, "Masters"), navBtn("customers", "Customers"), navBtn("suppliers", "Suppliers"), navBtn("warehouses", "Warehouses"), /*#__PURE__*/React.createElement("div", {
     className: "group"

@@ -8,9 +8,11 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import require_permission
 from app.models.core import User
+from app.models.commercial import SalesOrder
 from app.models.masters import (
     Chemical,
     Customer,
+    FabricType,
     Machine,
     Recipe,
     RecipeVersion,
@@ -18,6 +20,7 @@ from app.models.masters import (
     Supplier,
     TaxCode,
     Warehouse,
+    YarnMaster,
 )
 from app.schemas import CustomerCreate, PartyOut, SupplierCreate, WarehouseCreate, WarehouseOut
 
@@ -154,3 +157,29 @@ def list_recipe_versions(db: Session = Depends(get_db), user: User = Depends(req
     ).all()
     return [{"id": str(v.id), "label": f"{r.code} v{v.version_no}", "recipe_code": r.code,
              "version_no": v.version_no} for v, r in rows]
+
+
+@router.get("/yarns")
+def list_yarns(db: Session = Depends(get_db), user: User = Depends(require_permission("master.read"))):
+    rows = db.execute(select(YarnMaster).where(
+        YarnMaster.company_id == user.company_id, YarnMaster.is_active.is_(True)).order_by(YarnMaster.code)).scalars().all()
+    return [{"id": str(y.id), "code": y.code, "name": y.name,
+             "label": f"{y.code} — {y.name}"} for y in rows]
+
+
+@router.get("/fabric-types")
+def list_fabric_types(db: Session = Depends(get_db), user: User = Depends(require_permission("master.read"))):
+    rows = db.execute(select(FabricType).where(
+        FabricType.company_id == user.company_id, FabricType.is_active.is_(True)).order_by(FabricType.code)).scalars().all()
+    return [{"id": str(f.id), "code": f.code, "name": f.name, "label": f"{f.code} — {f.name}"} for f in rows]
+
+
+@router.get("/sales-orders")
+def list_sales_orders(db: Session = Depends(get_db), user: User = Depends(require_permission("master.read"))):
+    rows = db.execute(select(SalesOrder).where(
+        SalesOrder.company_id == user.company_id).order_by(SalesOrder.order_date.desc())).scalars().all()
+    out = []
+    for o in rows:
+        cust = db.get(Customer, o.customer_id)
+        out.append({"id": str(o.id), "label": f"{o.number} ({cust.name if cust else '-'})"})
+    return out

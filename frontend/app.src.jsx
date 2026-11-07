@@ -367,6 +367,63 @@ function Purchase(){
   </Panel>);
 }
 
+// ---- transactions: knitting production ------------------------------------
+function Knitting(){
+  const machines=useList("/api/masters/machines?machine_type=KNITTING"); const yarns=useList("/api/masters/yarns");
+  const fabrics=useList("/api/masters/fabric-types"); const warehouses=useList("/api/masters/warehouses");
+  const orders=useList("/api/masters/sales-orders");
+  const [h,setH]=useState({number:genNo("KP"),machine_id:"",yarn_id:"",fabric_type_id:"",sales_order_id:"",
+    production_date:new Date().toISOString().slice(0,10),produced_kg:"",yarn_consumed_kg:"",wastage_kg:"0"});
+  const [rolls,setRolls]=useState([{roll_no:"",weight_kg:"",warehouse_id:""}]);
+  const [res,setRes]=useState(null); const [err,setErr]=useState("");
+  const setRoll=(i,k,v)=>setRolls(rs=>rs.map((r,j)=>j===i?{...r,[k]:v}:r));
+  const submit=async e=>{ e.preventDefault(); setErr(""); setRes(null);
+    try{ const body={...h, sales_order_id:h.sales_order_id||null, fabric_type_id:h.fabric_type_id||null,
+        rolls:rolls.map(r=>({roll_no:r.roll_no, weight_kg:r.weight_kg, warehouse_id:r.warehouse_id||null}))};
+      const r=await api("/api/knitting/production",{method:"POST",body}); setRes(r);
+      setH({...h,number:genNo("KP")}); setRolls([{roll_no:"",weight_kg:"",warehouse_id:""}]); }
+    catch(ex){ setErr(ex.message); } };
+  return (<Panel title="Knitting production (issues yarn, creates greige rolls)">
+    <form onSubmit={submit}>
+      <div className="row mb">
+        <div className="field"><label>Doc number</label><input value={h.number}
+          onChange={e=>setH({...h,number:e.target.value})}/></div>
+        <div className="field"><label>Machine</label>
+          <Opts items={machines} value={h.machine_id} onChange={e=>setH({...h,machine_id:e.target.value})}/></div>
+        <div className="field"><label>Yarn</label>
+          <Opts items={yarns} value={h.yarn_id} onChange={e=>setH({...h,yarn_id:e.target.value})}/></div>
+        <div className="field"><label>Fabric type</label>
+          <Opts items={fabrics} value={h.fabric_type_id} onChange={e=>setH({...h,fabric_type_id:e.target.value})} placeholder="—"/></div>
+        <div className="field"><label>Sales order</label>
+          <Opts items={orders} value={h.sales_order_id} onChange={e=>setH({...h,sales_order_id:e.target.value})} placeholder="—"/></div>
+      </div>
+      <div className="row mb">
+        <div className="field"><label>Date</label><input type="date" value={h.production_date}
+          onChange={e=>setH({...h,production_date:e.target.value})}/></div>
+        <div className="field"><label>Produced (kg)</label><input value={h.produced_kg}
+          onChange={e=>setH({...h,produced_kg:e.target.value})} placeholder="250"/></div>
+        <div className="field"><label>Yarn consumed (kg)</label><input value={h.yarn_consumed_kg}
+          onChange={e=>setH({...h,yarn_consumed_kg:e.target.value})} placeholder="255"/></div>
+        <div className="field"><label>Wastage (kg)</label><input value={h.wastage_kg}
+          onChange={e=>setH({...h,wastage_kg:e.target.value})} placeholder="5"/></div>
+      </div>
+      <table><thead><tr><th>Roll no.</th><th className="num">Weight (kg)</th><th>Warehouse</th><th></th></tr></thead>
+      <tbody>{rolls.map((r,i)=><tr key={i}>
+        <td><input value={r.roll_no} onChange={e=>setRoll(i,"roll_no",e.target.value)} placeholder="R-0001"/></td>
+        <td className="num"><input style={{width:100}} value={r.weight_kg} onChange={e=>setRoll(i,"weight_kg",e.target.value)}/></td>
+        <td><Opts items={warehouses} value={r.warehouse_id} onChange={e=>setRoll(i,"warehouse_id",e.target.value)} placeholder="—"/></td>
+        <td>{rolls.length>1 && <button type="button" className="btn sec" onClick={()=>setRolls(rs=>rs.filter((_,j)=>j!==i))}>✕</button>}</td>
+      </tr>)}</tbody></table>
+      <div className="row" style={{marginTop:12}}>
+        <button type="button" className="btn sec" onClick={()=>setRolls(rs=>[...rs,{roll_no:"",weight_kg:"",warehouse_id:""}])}>+ Add roll</button>
+        <button className="btn">Record production</button>
+      </div>
+      {err && <div className="err">{err}</div>}
+    </form>
+    <Result r={res}/>
+  </Panel>);
+}
+
 // ---- transactions: sales invoice ------------------------------------------
 function Sales(){
   const customers=useList("/api/masters/customers"); const taxes=useList("/api/masters/tax-codes");
@@ -525,8 +582,8 @@ function Costing(){
 const PAGES={
   owner:{t:"Owner Dashboard",c:OwnerDash}, factory:{t:"Factory Dashboard",c:FactoryDash},
   accounts:{t:"Accounts Dashboard",c:AccountsDash}, chemical:{t:"Chemical Dashboard",c:ChemicalDash},
-  purchase:{t:"Purchase (GRN)",c:Purchase}, sales:{t:"Sales Invoice",c:Sales},
-  dyeing:{t:"Dyeing & Dispensing",c:Dyeing},
+  purchase:{t:"Purchase (GRN)",c:Purchase}, knitting:{t:"Knitting Production",c:Knitting},
+  sales:{t:"Sales Invoice",c:Sales}, dyeing:{t:"Dyeing & Dispensing",c:Dyeing},
   customers:{t:"Customers",c:()=> <PartyPage kind="customers"/>},
   suppliers:{t:"Suppliers",c:()=> <PartyPage kind="suppliers"/>},
   warehouses:{t:"Warehouses",c:Warehouses}, quality:{t:"Quality & Finishing",c:Quality},
@@ -545,8 +602,8 @@ function App(){
         {navBtn("owner","Owner")}{navBtn("factory","Factory")}
         {navBtn("accounts","Accounts")}{navBtn("chemical","Chemical")}
         <div className="group">Transactions</div>
-        {navBtn("purchase","Purchase (GRN)")}{navBtn("sales","Sales Invoice")}
-        {navBtn("dyeing","Dyeing & Dispensing")}
+        {navBtn("purchase","Purchase (GRN)")}{navBtn("knitting","Knitting")}
+        {navBtn("sales","Sales Invoice")}{navBtn("dyeing","Dyeing & Dispensing")}
         <div className="group">Masters</div>
         {navBtn("customers","Customers")}{navBtn("suppliers","Suppliers")}{navBtn("warehouses","Warehouses")}
         <div className="group">Quality</div>{navBtn("quality","Quality")}
