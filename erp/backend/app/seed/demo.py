@@ -14,8 +14,10 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from app.models.accounting import ChartOfAccount
 from app.models.inventory import ItemType
 from app.models.masters import (
+    BankAccount,
     Chemical,
     ChemicalLot,
     FabricType,
@@ -32,6 +34,7 @@ from app.models.masters import (
     YarnMaster,
 )
 from app.services import inventory
+from sqlalchemy import select
 
 # code, name, is_dye, dye_class, unit_cost per kg
 CHEMICALS = [
@@ -64,6 +67,15 @@ def seed_manufacturing_demo(db: Session, company_id: uuid.UUID, *, opening_qty: 
     customer = Customer(company_id=company_id, code="CUST-01", name="Fashion House",
                         state_code="03", gstin="03YYYYY0000Y1Z5")
     db.add_all([supplier, customer])
+    db.flush()
+
+    bank_coa = db.execute(
+        select(ChartOfAccount).where(ChartOfAccount.company_id == company_id, ChartOfAccount.code == "1020")
+    ).scalar_one_or_none()
+    bank = BankAccount(company_id=company_id, coa_account_id=bank_coa.id if bank_coa else None,
+                       name="HDFC Current A/c", bank_name="HDFC Bank",
+                       account_number="000111222333", ifsc="HDFC0000123")
+    db.add(bank)
     db.flush()
 
     chemicals: dict[str, Chemical] = {}
@@ -130,6 +142,7 @@ def seed_manufacturing_demo(db: Session, company_id: uuid.UUID, *, opening_qty: 
         "warehouses": {"chem": wh_chem.id, "greige": wh_greige.id, "fg": wh_fg.id},
         "supplier_id": supplier.id,
         "customer_id": customer.id,
+        "bank_account_id": bank.id,
         "chemicals": {c: chemicals[c].id for c in chemicals},
         "lots": {c: lots[c].id for c in lots},
         "lot_refs": {c: lots[c].internal_lot_no for c in lots},
