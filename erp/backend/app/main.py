@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from app.api.routes import accounts, auth, masters, reports, vouchers
+from app.api.routes import accounts, auth, masters, operations, reports, vouchers
 from app.core.config import settings
 
 app = FastAPI(
@@ -21,6 +21,7 @@ app.include_router(masters.router)
 app.include_router(accounts.router)
 app.include_router(vouchers.router)
 app.include_router(reports.router)
+app.include_router(operations.router)
 
 
 @app.get("/health", tags=["system"])

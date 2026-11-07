@@ -28,6 +28,7 @@ from app.models.core import Company, Permission, Role, User
 from app.models.masters import UnitOfMeasure
 from app.seed.chart_of_accounts import COA, VOUCHER_TYPES
 from app.seed.rbac import PERMISSIONS, ROLES
+from app.services.accounting.posting_rules import seed_default_posting_rules
 
 DEMO_COMPANY_CODE = "DEMO"
 UOMS = [
@@ -187,6 +188,7 @@ def run_seed(db: Session, *, fy_start_year: int | None = None) -> dict:
     seed_voucher_types(db)
     company = seed_company(db)
     seed_chart_of_accounts(db, company)
+    seed_default_posting_rules(db, company.id)
     seed_periods(db, company, fy_start_year)
     seed_uoms(db)
     admin = seed_admin(db, company, roles)

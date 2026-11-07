@@ -58,6 +58,7 @@ class _DecimalString(TypeDecorator):
 class Money(_DecimalString):
     """Exact monetary amount. NUMERIC(18,2) on PostgreSQL."""
 
+    cache_ok = True
     precision = MONEY_PRECISION
     scale = MONEY_SCALE
 
@@ -69,5 +70,6 @@ class Quantity(_DecimalString):
     stay precise.
     """
 
+    cache_ok = True
     precision = QTY_PRECISION
     scale = QTY_SCALE
