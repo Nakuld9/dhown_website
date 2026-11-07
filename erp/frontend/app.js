@@ -1583,6 +1583,141 @@ function Costing() {
   }, inr2(m.cost))))))));
 }
 
+// ---- devices & labels -----------------------------------------------------
+function Devices() {
+  const [summary, setSummary] = useState([]);
+  const [readings, setReadings] = useState([]);
+  const [rolls, setRolls] = useState([]);
+  const [machines, setMachines] = useState([]);
+  const [scales, setScales] = useState([]);
+  const [msg, setMsg] = useState("");
+  const load = useCallback(() => {
+    api("/api/hardware/knitting-summary").then(setSummary).catch(() => {});
+    api("/api/hardware/scale-readings").then(setReadings).catch(() => {});
+    api("/api/rolls").then(setRolls).catch(() => {});
+    api("/api/masters/machines?machine_type=KNITTING").then(setMachines).catch(() => {});
+    api("/api/hardware/scales").then(setScales).catch(() => {});
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+  const simKnit = async code => {
+    setMsg("");
+    try {
+      const r = await api("/api/hardware/simulate/knitting", {
+        method: "POST",
+        body: {
+          machine_code: code,
+          samples: 4
+        }
+      });
+      setMsg(`Ingested ${r.created} samples from ${code}`);
+      load();
+    } catch (e) {
+      setMsg(e.message);
+    }
+  };
+  const simWeigh = async code => {
+    setMsg("");
+    try {
+      const r = await api("/api/hardware/simulate/scale", {
+        method: "POST",
+        body: {
+          scale_code: code,
+          weight: (120 + Math.floor(Math.random() * 20)).toString(),
+          reference_type: "ROLL",
+          seq: Date.now() % 100000
+        }
+      });
+      setMsg(`Captured weight on ${code}`);
+      load();
+    } catch (e) {
+      setMsg(e.message);
+    }
+  };
+  const label = async id => {
+    try {
+      const blob = await api(`/api/rolls/${id}/label`, {
+        blob: true
+      });
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Panel, {
+    title: "Knitting machine monitoring"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "row mb"
+  }, machines.map(m => /*#__PURE__*/React.createElement("button", {
+    key: m.id,
+    className: "btn sec",
+    onClick: () => simKnit(m.code)
+  }, "Simulate ", m.code))), summary.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "muted"
+  }, "No machine logs yet \u2014 run a simulation.") : /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Machine"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Produced (kg)"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Run (min)"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Downtime (min)"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Stops"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Efficiency"))), /*#__PURE__*/React.createElement("tbody", null, summary.map((s, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, s.machine), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, inr2(s.produced_kg)), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, s.run_minutes), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, s.downtime_minutes), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, s.stops), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, Number(s.efficiency_pct).toFixed(1), "%")))))), /*#__PURE__*/React.createElement(Panel, {
+    title: "Weighing scale readings"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "row mb"
+  }, scales.map(s => /*#__PURE__*/React.createElement("button", {
+    key: s.id,
+    className: "btn sec",
+    onClick: () => simWeigh(s.code)
+  }, "Capture weight \xB7 ", s.code))), readings.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "muted"
+  }, "No readings yet.") : /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Reading id"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Weight"), /*#__PURE__*/React.createElement("th", null, "Ref"), /*#__PURE__*/React.createElement("th", null, "Stable"), /*#__PURE__*/React.createElement("th", null, "At"))), /*#__PURE__*/React.createElement("tbody", null, readings.slice(0, 10).map(r => /*#__PURE__*/React.createElement("tr", {
+    key: r.id
+  }, /*#__PURE__*/React.createElement("td", null, r.external_reading_id), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, inr2(r.weight), " ", r.unit), /*#__PURE__*/React.createElement("td", null, r.reference_type || "-"), /*#__PURE__*/React.createElement("td", null, r.stable ? "Yes" : "No"), /*#__PURE__*/React.createElement("td", null, (r.captured_at || "").slice(0, 19).replace("T", " ")))))), msg && /*#__PURE__*/React.createElement("div", {
+    className: "muted",
+    style: {
+      marginTop: 10
+    }
+  }, msg)), /*#__PURE__*/React.createElement(Panel, {
+    title: "Fabric roll labels (QR)"
+  }, rolls.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "muted"
+  }, "No rolls yet \u2014 record a knitting production.") : /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Roll no."), /*#__PURE__*/React.createElement("th", null, "Kind"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Weight"), /*#__PURE__*/React.createElement("th", null, "Quality"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, rolls.map(r => /*#__PURE__*/React.createElement("tr", {
+    key: r.id
+  }, /*#__PURE__*/React.createElement("td", null, r.roll_no), /*#__PURE__*/React.createElement("td", null, r.kind), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, inr2(r.weight_kg), " kg"), /*#__PURE__*/React.createElement("td", null, r.quality_status), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn sec",
+    onClick: () => label(r.id)
+  }, "Print label"))))))));
+}
+
 // ---- shell ----------------------------------------------------------------
 const PAGES = {
   owner: {
@@ -1641,6 +1776,10 @@ const PAGES = {
     t: "Costing & Profitability",
     c: Costing
   },
+  devices: {
+    t: "Devices & Labels",
+    c: Devices
+  },
   reports: {
     t: "Reports",
     c: Reports
@@ -1676,6 +1815,8 @@ function App() {
   }, "Quality"), navBtn("quality", "Quality"), /*#__PURE__*/React.createElement("div", {
     className: "group"
   }, "Costing"), navBtn("costing", "Costing"), /*#__PURE__*/React.createElement("div", {
+    className: "group"
+  }, "Devices"), navBtn("devices", "Devices & Labels"), /*#__PURE__*/React.createElement("div", {
     className: "group"
   }, "Reports"), navBtn("reports", "Reports"), /*#__PURE__*/React.createElement("div", {
     className: "group"

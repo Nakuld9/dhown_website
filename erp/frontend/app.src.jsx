@@ -578,6 +578,60 @@ function Costing(){
   </div>);
 }
 
+// ---- devices & labels -----------------------------------------------------
+function Devices(){
+  const [summary,setSummary]=useState([]); const [readings,setReadings]=useState([]);
+  const [rolls,setRolls]=useState([]); const [machines,setMachines]=useState([]); const [scales,setScales]=useState([]);
+  const [msg,setMsg]=useState("");
+  const load=useCallback(()=>{
+    api("/api/hardware/knitting-summary").then(setSummary).catch(()=>{});
+    api("/api/hardware/scale-readings").then(setReadings).catch(()=>{});
+    api("/api/rolls").then(setRolls).catch(()=>{});
+    api("/api/masters/machines?machine_type=KNITTING").then(setMachines).catch(()=>{});
+    api("/api/hardware/scales").then(setScales).catch(()=>{});
+  },[]);
+  useEffect(()=>{load()},[load]);
+  const simKnit=async code=>{ setMsg(""); try{ const r=await api("/api/hardware/simulate/knitting",
+    {method:"POST",body:{machine_code:code,samples:4}}); setMsg(`Ingested ${r.created} samples from ${code}`); load(); }
+    catch(e){ setMsg(e.message); } };
+  const simWeigh=async code=>{ setMsg(""); try{ const r=await api("/api/hardware/simulate/scale",
+    {method:"POST",body:{scale_code:code,weight:(120+Math.floor(Math.random()*20)).toString(),
+      reference_type:"ROLL",seq:Date.now()%100000}}); setMsg(`Captured weight on ${code}`); load(); }
+    catch(e){ setMsg(e.message); } };
+  const label=async id=>{ try{ const blob=await api(`/api/rolls/${id}/label`,{blob:true});
+    const url=URL.createObjectURL(blob); window.open(url,"_blank");
+    setTimeout(()=>URL.revokeObjectURL(url),10000); }catch(e){ alert(e.message); } };
+  return (<div>
+    <Panel title="Knitting machine monitoring">
+      <div className="row mb">{machines.map(m=><button key={m.id} className="btn sec"
+        onClick={()=>simKnit(m.code)}>Simulate {m.code}</button>)}</div>
+      {summary.length===0 ? <div className="muted">No machine logs yet — run a simulation.</div> :
+      <table><thead><tr><th>Machine</th><th className="num">Produced (kg)</th><th className="num">Run (min)</th>
+        <th className="num">Downtime (min)</th><th className="num">Stops</th><th className="num">Efficiency</th></tr></thead>
+      <tbody>{summary.map((s,i)=><tr key={i}><td>{s.machine}</td><td className="num">{inr2(s.produced_kg)}</td>
+        <td className="num">{s.run_minutes}</td><td className="num">{s.downtime_minutes}</td>
+        <td className="num">{s.stops}</td><td className="num">{Number(s.efficiency_pct).toFixed(1)}%</td></tr>)}</tbody></table>}
+    </Panel>
+    <Panel title="Weighing scale readings">
+      <div className="row mb">{scales.map(s=><button key={s.id} className="btn sec"
+        onClick={()=>simWeigh(s.code)}>Capture weight · {s.code}</button>)}</div>
+      {readings.length===0 ? <div className="muted">No readings yet.</div> :
+      <table><thead><tr><th>Reading id</th><th className="num">Weight</th><th>Ref</th><th>Stable</th><th>At</th></tr></thead>
+      <tbody>{readings.slice(0,10).map(r=><tr key={r.id}><td>{r.external_reading_id}</td>
+        <td className="num">{inr2(r.weight)} {r.unit}</td><td>{r.reference_type||"-"}</td>
+        <td>{r.stable?"Yes":"No"}</td><td>{(r.captured_at||"").slice(0,19).replace("T"," ")}</td></tr>)}</tbody></table>}
+      {msg && <div className="muted" style={{marginTop:10}}>{msg}</div>}
+    </Panel>
+    <Panel title="Fabric roll labels (QR)">
+      {rolls.length===0 ? <div className="muted">No rolls yet — record a knitting production.</div> :
+      <table><thead><tr><th>Roll no.</th><th>Kind</th><th className="num">Weight</th><th>Quality</th><th></th></tr></thead>
+      <tbody>{rolls.map(r=><tr key={r.id}><td>{r.roll_no}</td><td>{r.kind}</td>
+        <td className="num">{inr2(r.weight_kg)} kg</td><td>{r.quality_status}</td>
+        <td className="num"><button className="btn sec" onClick={()=>label(r.id)}>Print label</button></td></tr>)}</tbody></table>}
+    </Panel>
+  </div>);
+}
+
 // ---- shell ----------------------------------------------------------------
 const PAGES={
   owner:{t:"Owner Dashboard",c:OwnerDash}, factory:{t:"Factory Dashboard",c:FactoryDash},
@@ -587,7 +641,8 @@ const PAGES={
   customers:{t:"Customers",c:()=> <PartyPage kind="customers"/>},
   suppliers:{t:"Suppliers",c:()=> <PartyPage kind="suppliers"/>},
   warehouses:{t:"Warehouses",c:Warehouses}, quality:{t:"Quality & Finishing",c:Quality},
-  costing:{t:"Costing & Profitability",c:Costing}, reports:{t:"Reports",c:Reports},
+  costing:{t:"Costing & Profitability",c:Costing}, devices:{t:"Devices & Labels",c:Devices},
+  reports:{t:"Reports",c:Reports},
 };
 function App(){
   const [page,setPage]=useState("owner"); const [me,setMe]=useState(null);
@@ -608,6 +663,7 @@ function App(){
         {navBtn("customers","Customers")}{navBtn("suppliers","Suppliers")}{navBtn("warehouses","Warehouses")}
         <div className="group">Quality</div>{navBtn("quality","Quality")}
         <div className="group">Costing</div>{navBtn("costing","Costing")}
+        <div className="group">Devices</div>{navBtn("devices","Devices & Labels")}
         <div className="group">Reports</div>{navBtn("reports","Reports")}
         <div className="group">Session</div>
         <button onClick={()=>{setToken(null); location.reload();}}>Log out</button>
