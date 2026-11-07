@@ -57,10 +57,15 @@ specified (pending-verification) Color Service dispensing integration.
   (recipe vs actual, variance, cost, per-kg).
 - **Sales** — GST sales invoice posting (receivable + output tax).
 
+- **Report exports** (Stage 9) — one-call **Excel (.xlsx)** and **PDF** export
+  for trial balance, P&L, Balance Sheet, cash flow, debtor/creditor ageing, GST
+  sales/purchase registers, GSTR-3B, and the dye-bath consumption register
+  (one report-document model renders to both formats).
+
 **Platform** — JWT auth + RBAC (15 roles), REST API, Alembic migrations,
 idempotent seed + demo data, Docker Compose.
 
-`58 passing tests` cover the accounting invariants, the nine worked posting
+`62 passing tests` cover the accounting invariants, the nine worked posting
 examples, correction dosing, RBAC, full-cycle trial balance, procurement,
 knitting, recipe scaling, the full dispensing cycle, end-to-end traceability,
 the financial statements (P&L / Balance Sheet / Cash Flow / ageing), GST
@@ -123,13 +128,13 @@ erp/
     │   ├── models/            # core, masters, accounting, inventory, commercial,
     │   │                      #   manufacturing, dispensing, banking, audit (ORM)
     │   ├── services/          # posting engine, trial balance, financial statements,
-    │   │                      #   gst, posting rules, tax, inventory (FIFO), banking,
+    │   │                      #   gst, exports (xlsx/pdf), posting rules, tax, inventory,
     │   │                      #   procurement, sales, knitting, recipes, colorservice
     │   ├── api/routes/        # auth, masters, accounts, vouchers, reports, operations, banking
     │   └── seed/              # chart of accounts, RBAC, seeder, demo data
     ├── alembic/               # migrations (baseline from metadata)
-    └── tests/                 # 58 tests: invariants, posting matrix, TB, procurement,
-                               #   knitting, dyeing+dispensing, traceability, statements, gst, banking, API
+    └── tests/                 # 62 tests: invariants, posting matrix, TB, procurement,
+                               #   knitting, dyeing+dispensing, traceability, statements, gst, banking, exports, API
 ```
 
 ## Stage status (brief §22)
@@ -144,7 +149,7 @@ erp/
 | 6 | Double-entry engine, chart of accounts, vouchers | **Done** (core + TB) |
 | 7 | GST, banking, financial statements, reconciliation | **P&L + BS + Cash Flow + ageing + GST (registers/GSTR-1/3B) + banking + reconciliation done**; e-invoice/e-way pending |
 | 8 | Costing, finishing, quality, dashboards | Cost centres + bath costing done; dashboards pending |
-| 9 | Reports, security hardening, deployment | RBAC + Docker + API done; report exports pending |
+| 9 | Reports, security hardening, deployment | RBAC + Docker + API + **Excel/PDF exports** done; more report coverage + UI pending |
 
 ## Acceptance-test coverage (brief §23)
 

@@ -1,18 +1,21 @@
 """Reporting routes: trial balance, ledger, and financial statements."""
 from __future__ import annotations
 
+import uuid
 from datetime import date
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import require_permission
 from app.models.core import User
+from app.services import exports
 from app.services.accounting import financial_statements as fs
 from app.services.accounting import gst as gst_svc
 from app.services.accounting import trial_balance as tb
+from app.services.exports import builders as export_builders
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -152,3 +155,37 @@ def gst_reconciliation(date_from: date | None = None, date_to: date | None = Non
                        user: User = Depends(require_permission("report.financial"))) -> dict:
     frm, to = _range(date_from, date_to)
     return _stringify(gst_svc.book_vs_gst_reconciliation(db, user.company_id, frm, to))
+
+
+_MEDIA = {
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "pdf": "application/pdf",
+}
+
+
+@router.get("/export/{report}")
+def export_report(
+    report: str,
+    format: str = "xlsx",
+    date_from: date | None = None,
+    date_to: date | None = None,
+    as_of: date | None = None,
+    bath_id: uuid.UUID | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("report.read")),
+) -> Response:
+    if format not in _MEDIA:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "format must be 'xlsx' or 'pdf'")
+    try:
+        doc = export_builders.build_report(
+            db, user.company_id, report, date_from=date_from, date_to=date_to,
+            as_of=as_of, bath_id=bath_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc))
+    content = exports.render_excel(doc) if format == "xlsx" else exports.render_pdf(doc)
+    filename = f"{report}-{date.today().isoformat()}.{format}"
+    return Response(
+        content=content, media_type=_MEDIA[format],
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
