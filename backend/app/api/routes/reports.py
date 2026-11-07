@@ -11,6 +11,7 @@ from app.core.database import get_db
 from app.core.deps import require_permission
 from app.models.core import User
 from app.services.accounting import financial_statements as fs
+from app.services.accounting import gst as gst_svc
 from app.services.accounting import trial_balance as tb
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
@@ -106,3 +107,48 @@ def creditors_ageing(
     user: User = Depends(require_permission("report.read")),
 ) -> dict:
     return _stringify(fs.creditors_ageing(db, user.company_id, as_of or date.today()))
+
+
+def _range(date_from: date | None, date_to: date | None) -> tuple[date, date]:
+    to = date_to or date.today()
+    return (date_from or _fy_start(to)), to
+
+
+@router.get("/gst/sales-register")
+def gst_sales_register(date_from: date | None = None, date_to: date | None = None,
+                       db: Session = Depends(get_db),
+                       user: User = Depends(require_permission("report.financial"))) -> dict:
+    frm, to = _range(date_from, date_to)
+    return _stringify(gst_svc.sales_register(db, user.company_id, frm, to))
+
+
+@router.get("/gst/purchase-register")
+def gst_purchase_register(date_from: date | None = None, date_to: date | None = None,
+                          db: Session = Depends(get_db),
+                          user: User = Depends(require_permission("report.financial"))) -> dict:
+    frm, to = _range(date_from, date_to)
+    return _stringify(gst_svc.purchase_register(db, user.company_id, frm, to))
+
+
+@router.get("/gst/gstr1")
+def gst_gstr1(date_from: date | None = None, date_to: date | None = None,
+              db: Session = Depends(get_db),
+              user: User = Depends(require_permission("report.financial"))) -> dict:
+    frm, to = _range(date_from, date_to)
+    return _stringify(gst_svc.gstr1_summary(db, user.company_id, frm, to))
+
+
+@router.get("/gst/gstr3b")
+def gst_gstr3b(date_from: date | None = None, date_to: date | None = None,
+               db: Session = Depends(get_db),
+               user: User = Depends(require_permission("report.financial"))) -> dict:
+    frm, to = _range(date_from, date_to)
+    return _stringify(gst_svc.gstr3b_summary(db, user.company_id, frm, to))
+
+
+@router.get("/gst/reconciliation")
+def gst_reconciliation(date_from: date | None = None, date_to: date | None = None,
+                       db: Session = Depends(get_db),
+                       user: User = Depends(require_permission("report.financial"))) -> dict:
+    frm, to = _range(date_from, date_to)
+    return _stringify(gst_svc.book_vs_gst_reconciliation(db, user.company_id, frm, to))

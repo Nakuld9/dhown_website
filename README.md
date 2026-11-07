@@ -33,6 +33,10 @@ specified (pending-verification) Color Service dispensing integration.
   (balances by construction, folding current-year profit into equity),
   **Cash Flow** (operating/investing/financing, ledger-derived), and **debtor /
   creditor ageing** (FIFO allocation) — all derived from the posted ledger.
+- **Indian GST** (Stage 7) — **sales & purchase registers**, **GSTR-1** summary
+  (B2B/B2C, rate-wise, HSN-wise), **GSTR-3B** summary (outward tax, eligible
+  ITC, net payable), and a **books-vs-registers reconciliation**; rates come
+  from configurable tax codes, never hardcoded.
 
 **Operations (Stage 2–4)**
 - **Procurement** — chemical/dye GRN → FIFO stock layer + GST purchase voucher.
@@ -52,10 +56,11 @@ specified (pending-verification) Color Service dispensing integration.
 **Platform** — JWT auth + RBAC (15 roles), REST API, Alembic migrations,
 idempotent seed + demo data, Docker Compose.
 
-`49 passing tests` cover the accounting invariants, the nine worked posting
+`54 passing tests` cover the accounting invariants, the nine worked posting
 examples, correction dosing, RBAC, full-cycle trial balance, procurement,
 knitting, recipe scaling, the full dispensing cycle, end-to-end traceability,
-the financial statements (P&L / Balance Sheet / Cash Flow / ageing), and the
+the financial statements (P&L / Balance Sheet / Cash Flow / ageing), GST
+(registers / GSTR-1 / GSTR-3B / reconciliation), and the
 REST flow. See the acceptance-test map below.
 
 ## Design documents (start here)
@@ -119,8 +124,8 @@ erp/
     │   ├── api/routes/        # auth, masters, accounts, vouchers, reports, operations
     │   └── seed/              # chart of accounts, RBAC, seeder, demo data
     ├── alembic/               # migrations (baseline from metadata)
-    └── tests/                 # 49 tests: invariants, posting matrix, TB, procurement,
-                               #   knitting, dyeing+dispensing, traceability, statements, API
+    └── tests/                 # 54 tests: invariants, posting matrix, TB, procurement,
+                               #   knitting, dyeing+dispensing, traceability, statements, gst, API
 ```
 
 ## Stage status (brief §22)
@@ -133,7 +138,7 @@ erp/
 | 4 | Color Service integration + bath-wise consumption | **Done via simulator** (live adapter pending vendor) |
 | 5 | Chemical inventory + inventory accounting | **Done** (FIFO valuation + GL reconciliation) |
 | 6 | Double-entry engine, chart of accounts, vouchers | **Done** (core + TB) |
-| 7 | GST, banking, financial statements, reconciliation | **P&L + Balance Sheet + Cash Flow + ageing done**; GST returns & bank-rec pending |
+| 7 | GST, banking, financial statements, reconciliation | **P&L + BS + Cash Flow + ageing + GST registers/GSTR-1/3B/reconciliation done**; bank-rec & e-invoice/e-way pending |
 | 8 | Costing, finishing, quality, dashboards | Cost centres + bath costing done; dashboards pending |
 | 9 | Reports, security hardening, deployment | RBAC + Docker + API done; report exports pending |
 
