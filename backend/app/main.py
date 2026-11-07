@@ -12,11 +12,13 @@ from app.api.routes import (
     banking,
     costing,
     dashboard,
+    hardware,
     knitting,
     masters,
     operations,
     quality,
     reports,
+    rolls,
     vouchers,
 )
 from app.core.config import settings
@@ -42,6 +44,8 @@ app.include_router(dashboard.router)
 app.include_router(quality.router)
 app.include_router(costing.router)
 app.include_router(knitting.router)
+app.include_router(hardware.router)
+app.include_router(rolls.router)
 
 
 @app.get("/health", tags=["system"])

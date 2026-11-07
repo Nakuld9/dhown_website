@@ -50,6 +50,9 @@ specified (pending-verification) Color Service dispensing integration.
 - **Recipe scaling** — %OWF / grams-per-kg (250 kg × 1.4% = 3.5 kg), approved
   versions only.
 - **Dyeing** — batches/baths with roll traceability and the approved recipe.
+- **Shop-floor hardware** — **weighing scale** and **knitting-machine**
+  integration (vendor-neutral adapter + simulator, idempotent ingest), a machine
+  **efficiency** summary, and printable **fabric-roll labels (PDF + QR)**.
 - **Color Service** — dose-order builder, **simulator** adapter, idempotent
   ingest → immutable dispensing transactions → **consume stock exactly once** →
   Dr WIP / Cr inventory; **correction dosing** as separate transactions;
@@ -94,7 +97,7 @@ specified (pending-verification) Color Service dispensing integration.
 **Platform** — JWT auth + RBAC (15 roles), REST API, Alembic migrations,
 idempotent seed + demo data, Docker Compose.
 
-`85 passing tests` cover the accounting invariants, the nine worked posting
+`90 passing tests` cover the accounting invariants, the nine worked posting
 examples, correction dosing, RBAC, full-cycle trial balance, procurement,
 knitting, recipe scaling, the full dispensing cycle, end-to-end traceability,
 the financial statements (P&L / Balance Sheet / Cash Flow / ageing), GST
@@ -109,6 +112,7 @@ REST flow. See the acceptance-test map below.
 | [`docs/ER_DIAGRAM.md`](docs/ER_DIAGRAM.md) | Mermaid ER diagrams + the master traceability chain |
 | [`docs/ACCOUNTING_POSTING_MATRIX.md`](docs/ACCOUNTING_POSTING_MATRIX.md) | Dr/Cr rules for every business event |
 | [`docs/COLOR_SERVICE_INTEGRATION.md`](docs/COLOR_SERVICE_INTEGRATION.md) | Dispensing integration spec, adapters, simulator |
+| [`docs/HARDWARE_INTEGRATION.md`](docs/HARDWARE_INTEGRATION.md) | Weighing-scale & knitting-machine integration, roll labels |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Install, configure, back up / recover, upgrade, monitor |
 | [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) | Administrator guide + user guide by workflow |
 
@@ -179,7 +183,7 @@ erp/
     │   │                     #   banking, dashboard
     │   └── seed/             # chart of accounts, RBAC, seeder, demo data
     ├── alembic/              # migrations (baseline from metadata)
-    └── tests/                # 85 tests: invariants, posting matrix, TB, procurement,
+    └── tests/                # 90 tests: invariants, posting matrix, TB, procurement,
                               #   knitting, dyeing+dispensing, traceability, statements,
                               #   gst, banking, exports, dashboards, quality, API
 ```

@@ -89,6 +89,12 @@ from app.models.quality import (  # noqa: F401
     InspectionResult,
     QualityInspection,
 )
+from app.models.hardware import (  # noqa: F401
+    KnittingMachineLog,
+    MachineStatus,
+    ScaleReading,
+    WeighingScale,
+)
 
 # Registering the guard activates the immutable-ledger Session listeners.
 from app.core import ledger_guard  # noqa: E402,F401

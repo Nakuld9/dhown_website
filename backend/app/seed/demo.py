@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from app.services.accounting import posting_engine as pe
 
 from app.models.accounting import ChartOfAccount
+from app.models.hardware import WeighingScale
 from app.models.inventory import ItemType
 from app.models.masters import (
     BankAccount,
@@ -122,6 +123,9 @@ def seed_manufacturing_demo(db: Session, company_id: uuid.UUID, *, opening_qty: 
                   name="Soft Flow Jet 04", capacity_kg=Decimal("300"))
     db.add_all([knit, jet])
 
+    scale = WeighingScale(company_id=company_id, code="SCALE-01", name="Greige Weighing Scale",
+                          location="Greige Store", capacity_kg=Decimal("500"))
+    db.add(scale)
     shade = ShadeCode(company_id=company_id, code="SH-NAVY", name="Navy Blue", customer_id=customer.id)
     fabric = FabricType(company_id=company_id, code="SJ-160", name="Single Jersey 160",
                         construction="Single Jersey", composition="100% Cotton",
@@ -174,4 +178,5 @@ def seed_manufacturing_demo(db: Session, company_id: uuid.UUID, *, opening_qty: 
         "fabric_type_id": fabric.id,
         "recipe_id": recipe.id,
         "recipe_version_id": version.id,
+        "scale_id": scale.id,
     }
