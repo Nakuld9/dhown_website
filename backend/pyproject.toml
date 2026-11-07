@@ -1,0 +1,14 @@
+[project]
+name = "textile-erp-backend"
+version = "0.1.0"
+description = "Integrated Textile Manufacturing ERP with double-entry accounting"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
