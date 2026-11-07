@@ -1,0 +1,137 @@
+"""Default textile-manufacturing chart of accounts (configurable).
+
+Each entry: (code, name, account_type, is_group, parent_code, flags)
+flags is a set drawn from: "cash", "bank", "control".
+Group accounts are headings and cannot receive postings directly.
+"""
+from __future__ import annotations
+
+from app.models.accounting import AccountType
+
+A, L, E, I, X = (
+    AccountType.ASSET,
+    AccountType.LIABILITY,
+    AccountType.EQUITY,
+    AccountType.INCOME,
+    AccountType.EXPENSE,
+)
+
+COA: list[tuple[str, str, AccountType, bool, str | None, set[str]]] = [
+    # ---------------- ASSETS ----------------
+    ("1000", "Current Assets", A, True, None, set()),
+    ("1010", "Cash in Hand", A, False, "1000", {"cash"}),
+    ("1020", "Bank - Current Account", A, False, "1000", {"bank"}),
+    ("1030", "Petty Cash", A, False, "1000", {"cash"}),
+    ("1040", "Accounts Receivable", A, False, "1000", {"control"}),
+    ("1050", "Advances to Customers", A, False, "1000", set()),
+    ("1060", "Yarn Inventory", A, False, "1000", {"control"}),
+    ("1070", "Greige Fabric Inventory", A, False, "1000", {"control"}),
+    ("1080", "Work in Progress", A, False, "1000", {"control"}),
+    ("1085", "Finished Fabric Inventory", A, False, "1000", {"control"}),
+    ("1090", "Dye Inventory", A, False, "1000", {"control"}),
+    ("1100", "Chemical Inventory", A, False, "1000", {"control"}),
+    ("1110", "Packing Material Inventory", A, False, "1000", {"control"}),
+    ("1120", "GST Input Credit", A, True, "1000", set()),
+    ("1121", "Input CGST", A, False, "1120", set()),
+    ("1122", "Input SGST", A, False, "1120", set()),
+    ("1123", "Input IGST", A, False, "1120", set()),
+    ("1130", "Supplier Advances", A, False, "1000", set()),
+    ("1140", "Prepaid Expenses", A, False, "1000", set()),
+    ("1500", "Fixed Assets", A, True, None, set()),
+    ("1510", "Land", A, False, "1500", set()),
+    ("1520", "Building", A, False, "1500", set()),
+    ("1530", "Plant and Machinery", A, False, "1500", set()),
+    ("1531", "Knitting Machines", A, False, "1500", set()),
+    ("1532", "Dyeing Machines", A, False, "1500", set()),
+    ("1533", "Finishing Machines", A, False, "1500", set()),
+    ("1540", "Electrical Equipment", A, False, "1500", set()),
+    ("1550", "Computers", A, False, "1500", set()),
+    ("1560", "Furniture", A, False, "1500", set()),
+    ("1570", "Vehicles", A, False, "1500", set()),
+    ("1590", "Accumulated Depreciation", A, False, "1500", set()),  # contra-asset (credit natural)
+    # ---------------- LIABILITIES ----------------
+    ("2000", "Current Liabilities", L, True, None, set()),
+    ("2010", "Accounts Payable", L, False, "2000", {"control"}),
+    ("2020", "Expenses Payable", L, False, "2000", set()),
+    ("2030", "Salary Payable", L, False, "2000", set()),
+    ("2040", "GST Output", L, True, "2000", set()),
+    ("2041", "Output CGST", L, False, "2040", set()),
+    ("2042", "Output SGST", L, False, "2040", set()),
+    ("2043", "Output IGST", L, False, "2040", set()),
+    ("2050", "TDS Payable", L, False, "2000", set()),
+    ("2060", "Advance from Customers", L, False, "2000", set()),
+    ("2070", "Short-term Loans", L, False, "2000", set()),
+    ("2080", "Duties and Taxes Payable", L, False, "2000", set()),
+    ("2500", "Long-term Liabilities", L, True, None, set()),
+    ("2510", "Term Loans", L, False, "2500", set()),
+    ("2520", "Machinery Loans", L, False, "2500", set()),
+    ("2530", "Other Borrowings", L, False, "2500", set()),
+    # ---------------- CAPITAL & EQUITY ----------------
+    ("3000", "Capital and Equity", E, True, None, set()),
+    ("3010", "Owner's Capital", E, False, "3000", set()),
+    ("3020", "Partners' Capital", E, False, "3000", set()),
+    ("3030", "Retained Earnings", E, False, "3000", set()),
+    ("3040", "Current Year Profit", E, False, "3000", set()),
+    ("3050", "Drawings", E, False, "3000", set()),
+    # ---------------- INCOME ----------------
+    ("4000", "Income", I, True, None, set()),
+    ("4010", "Fabric Sales", I, False, "4000", set()),
+    ("4020", "Knitting Job Work Income", I, False, "4000", set()),
+    ("4030", "Dyeing Job Work Income", I, False, "4000", set()),
+    ("4040", "Processing Income", I, False, "4000", set()),
+    ("4050", "Other Operating Income", I, False, "4000", set()),
+    ("4060", "Scrap Sales", I, False, "4000", set()),
+    ("4090", "Other Income", I, False, "4000", set()),
+    # ---------------- DIRECT EXPENSES / COGS ----------------
+    ("5000", "Direct Expenses & COGS", X, True, None, set()),
+    ("5010", "Yarn Consumption", X, False, "5000", set()),
+    ("5020", "Knitting Wages", X, False, "5000", set()),
+    ("5030", "Dye Consumption", X, False, "5000", set()),
+    ("5040", "Chemical Consumption", X, False, "5000", set()),
+    ("5050", "Water Charges", X, False, "5000", set()),
+    ("5060", "Steam Charges", X, False, "5000", set()),
+    ("5070", "Electricity Charges", X, False, "5000", set()),
+    ("5080", "Direct Labour", X, False, "5000", set()),
+    ("5090", "Processing Charges", X, False, "5000", set()),
+    ("5100", "Finishing Charges", X, False, "5000", set()),
+    ("5110", "Job Work Expenses", X, False, "5000", set()),
+    ("5120", "Packing Material Consumption", X, False, "5000", set()),
+    ("5130", "Production Wastage", X, False, "5000", set()),
+    ("5140", "Reprocessing Cost", X, False, "5000", set()),
+    ("5150", "Cost of Goods Sold", X, False, "5000", set()),
+    # ---------------- INDIRECT EXPENSES ----------------
+    ("6000", "Indirect Expenses", X, True, None, set()),
+    ("6010", "Salaries", X, False, "6000", set()),
+    ("6020", "Office Expenses", X, False, "6000", set()),
+    ("6030", "Repairs and Maintenance", X, False, "6000", set()),
+    ("6040", "Factory Administration", X, False, "6000", set()),
+    ("6050", "Rent", X, False, "6000", set()),
+    ("6060", "Insurance", X, False, "6000", set()),
+    ("6070", "Freight", X, False, "6000", set()),
+    ("6080", "Selling Expenses", X, False, "6000", set()),
+    ("6090", "Professional Fees", X, False, "6000", set()),
+    ("6100", "Bank Charges", X, False, "6000", set()),
+    ("6110", "Depreciation", X, False, "6000", set()),
+    ("6120", "Interest", X, False, "6000", set()),
+    ("6130", "Communication", X, False, "6000", set()),
+    ("6190", "Miscellaneous Expenses", X, False, "6000", set()),
+]
+
+
+VOUCHER_TYPES: list[tuple[str, str, str, bool]] = [
+    # (code, name, prefix, requires_approval)
+    ("JV", "Journal Voucher", "JV", False),
+    ("PV", "Payment Voucher", "PV", True),
+    ("RV", "Receipt Voucher", "RV", False),
+    ("CV", "Contra Voucher", "CV", False),
+    ("PI", "Purchase Voucher", "PI", False),
+    ("SI", "Sales Voucher", "SI", False),
+    ("DN", "Debit Note", "DN", False),
+    ("CN", "Credit Note", "CN", False),
+    ("SJ", "Stock Journal", "SJ", False),
+    ("PJ", "Production Journal", "PJ", False),
+    ("PRV", "Payroll Voucher", "PRV", True),
+    ("DEP", "Depreciation Voucher", "DEP", False),
+    ("GADJ", "GST Adjustment Voucher", "GADJ", True),
+    ("OB", "Opening Balance Voucher", "OB", True),
+]

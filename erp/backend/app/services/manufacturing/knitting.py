@@ -1,0 +1,95 @@
+"""Knitting production: issue yarn (FIFO) and produce traceable greige rolls,
+posting the matching inventory and accounting movements."""
+from __future__ import annotations
+
+import uuid
+from decimal import Decimal
+
+from sqlalchemy.orm import Session
+
+from app.core.types import MONEY_SCALE, QTY_SCALE, quantize
+from app.models.inventory import ItemType
+from app.models.manufacturing import FabricRoll, KnittingProduction, RollKind
+from app.services import inventory
+from app.services.accounting import posting_engine as pe
+from app.services.accounting.posting_rules import resolve_account
+
+
+def record_production(
+    db: Session,
+    kp: KnittingProduction,
+    roll_specs: list[dict],
+    *,
+    created_by: uuid.UUID | None = None,
+) -> dict:
+    """Consume yarn and create greige rolls. ``roll_specs`` items:
+    {roll_no, weight_kg, length_m?, gsm?, width_cm?, warehouse_id?}.
+    Idempotent on the knitting document number."""
+    issue_ref = f"KNIT:{kp.number}:issue"
+    existing = pe.find_existing(db, kp.company_id, issue_ref)
+    if existing is not None:
+        return {"already_posted": True, "issue_voucher": existing}
+
+    # 1) Issue yarn from stock (FIFO) -> actual cost.
+    result = inventory.consume(
+        db, company_id=kp.company_id, item_type=ItemType.YARN, item_id=kp.yarn_id,
+        qty=kp.yarn_consumed_kg, event_type="YARN_ISSUE",
+        source_module="knitting", source_id=str(kp.id), posting_reference=issue_ref,
+    )
+    yarn_cost = result["total_cost"]
+
+    # 2) Accounting: yarn -> WIP, then WIP -> greige inventory.
+    issue_voucher = pe.post_voucher(db, pe.PostingRequest(
+        company_id=kp.company_id, voucher_type_code="PJ", voucher_date=kp.production_date,
+        posting_reference=issue_ref, narration=f"Yarn issue for knitting {kp.number}",
+        source_module="knitting", source_id=str(kp.id), created_by=created_by,
+        lines=[
+            pe.PostingLine(resolve_account(db, kp.company_id, "YARN_ISSUE", "wip"), debit=yarn_cost),
+            pe.PostingLine(resolve_account(db, kp.company_id, "YARN_ISSUE", "inventory"), credit=yarn_cost),
+        ],
+    ))
+    produce_ref = f"KNIT:{kp.number}:produce"
+    produce_voucher = pe.post_voucher(db, pe.PostingRequest(
+        company_id=kp.company_id, voucher_type_code="PJ", voucher_date=kp.production_date,
+        posting_reference=produce_ref, narration=f"Greige production {kp.number}",
+        source_module="knitting", source_id=str(kp.id), created_by=created_by,
+        lines=[
+            pe.PostingLine(resolve_account(db, kp.company_id, "KNITTING_PRODUCTION", "greige"), debit=yarn_cost),
+            pe.PostingLine(resolve_account(db, kp.company_id, "KNITTING_PRODUCTION", "wip"), credit=yarn_cost),
+        ],
+    ))
+
+    # 3) Create greige rolls and receive them into the fabric sub-ledger at cost.
+    total_kg = sum((Decimal(str(s["weight_kg"])) for s in roll_specs), Decimal("0"))
+    if total_kg <= 0:
+        total_kg = Decimal(str(kp.produced_kg)) or Decimal("1")
+    per_kg_cost = quantize(yarn_cost / total_kg, MONEY_SCALE)
+
+    rolls = []
+    for spec in roll_specs:
+        roll = FabricRoll(
+            company_id=kp.company_id, roll_no=spec["roll_no"], kind=RollKind.GREIGE,
+            knitting_production_id=kp.id, fabric_type_id=kp.fabric_type_id,
+            sales_order_id=kp.sales_order_id, weight_kg=spec["weight_kg"],
+            length_m=spec.get("length_m"), gsm=spec.get("gsm"), width_cm=spec.get("width_cm"),
+            warehouse_id=spec.get("warehouse_id"), barcode=spec.get("barcode"),
+        )
+        db.add(roll)
+        db.flush()
+        inventory.receive(
+            db, company_id=kp.company_id, item_type=ItemType.FABRIC, item_id=roll.id,
+            qty=spec["weight_kg"], unit_cost=per_kg_cost, warehouse_id=spec.get("warehouse_id"),
+            event_type="PRODUCE", source_module="knitting", source_id=str(kp.id),
+            posting_reference=produce_ref,
+        )
+        rolls.append(roll)
+
+    kp.posting_reference = issue_ref
+    db.flush()
+    return {
+        "issue_voucher": issue_voucher,
+        "produce_voucher": produce_voucher,
+        "rolls": rolls,
+        "yarn_cost": yarn_cost,
+        "per_kg_cost": per_kg_cost,
+    }
