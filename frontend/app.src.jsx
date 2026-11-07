@@ -55,6 +55,22 @@ function useData(path){
     return ()=>{on=false}; },[path]);
   return [d,err];
 }
+// loads a lookup list once; returns [] until ready
+function useList(path){
+  const [d,setD]=useState([]);
+  useEffect(()=>{ let on=true; api(path).then(r=>on&&setD(r||[])).catch(()=>{}); return ()=>{on=false}; },[path]);
+  return d;
+}
+function Opts({items, value, onChange, labelKey="label", valueKey="id", placeholder="Select…"}){
+  return (<select value={value} onChange={onChange}>
+    <option value="">{placeholder}</option>
+    {items.map(o=><option key={o[valueKey]} value={o[valueKey]}>{o[labelKey]||o.name||o.code}</option>)}
+  </select>);
+}
+function Result({r}){ return r ? <div className="panel" style={{borderColor:"#bbf7d0",background:"#f0fdf4"}}>
+  <b>Posted.</b> {Object.entries(r).map(([k,v])=><span key={k} style={{marginRight:16}}>
+    <span className="muted">{k}:</span> {String(v)}</span>)}</div> : null; }
+const genNo = pfx => pfx+"-"+Date.now().toString().slice(-8);
 
 function OwnerDash(){
   const [d,err]=useData("/api/dashboard/owner");
@@ -273,10 +289,203 @@ function Quality(){
   </div>);
 }
 
+// ---- masters: parties -----------------------------------------------------
+function PartyPage({kind}){  // kind: "customers" | "suppliers"
+  const [rows,setRows]=useState(null); const [err,setErr]=useState("");
+  const [f,setF]=useState({code:"",name:"",gstin:"",state_code:""});
+  const load=useCallback(()=>api(`/api/masters/${kind}`).then(setRows).catch(e=>setErr(e.message)),[kind]);
+  useEffect(()=>{load()},[load]);
+  const add=async e=>{ e.preventDefault(); setErr("");
+    try{ await api(`/api/masters/${kind}`,{method:"POST",body:f});
+      setF({code:"",name:"",gstin:"",state_code:""}); load(); }
+    catch(ex){ setErr(ex.message); } };
+  const title = kind==="customers"?"customer":"supplier";
+  return (<div>
+    <Panel title={"Add "+title}>
+      <form className="row" onSubmit={add}>
+        <div className="field"><label>Code</label><input required value={f.code}
+          onChange={e=>setF({...f,code:e.target.value})} placeholder={kind==="customers"?"CUST-01":"SUP-01"}/></div>
+        <div className="field"><label>Name</label><input required value={f.name}
+          onChange={e=>setF({...f,name:e.target.value})} placeholder="Legal name"/></div>
+        <div className="field"><label>GSTIN</label><input value={f.gstin}
+          onChange={e=>setF({...f,gstin:e.target.value})} placeholder="03ABCDE1234F1Z5"/></div>
+        <div className="field"><label>State code</label><input value={f.state_code}
+          onChange={e=>setF({...f,state_code:e.target.value})} placeholder="03" style={{width:70}}/></div>
+        <button className="btn">Add</button>
+      </form>{err && <div className="err">{err}</div>}
+    </Panel>
+    <Panel title={title.charAt(0).toUpperCase()+title.slice(1)+"s"}>
+      {!rows?"Loading…":<table><thead><tr><th>Code</th><th>Name</th><th>GSTIN</th><th>State</th></tr></thead>
+      <tbody>{rows.map(r=><tr key={r.id}><td>{r.code}</td><td>{r.name}</td><td>{r.gstin||"-"}</td>
+        <td>{r.state_code||"-"}</td></tr>)}</tbody></table>}
+    </Panel>
+  </div>);
+}
+
+// ---- transactions: purchase (GRN) -----------------------------------------
+function Purchase(){
+  const suppliers=useList("/api/masters/suppliers"); const chemicals=useList("/api/masters/chemicals");
+  const warehouses=useList("/api/masters/warehouses"); const taxes=useList("/api/masters/tax-codes");
+  const [hdr,setHdr]=useState({supplier_id:"",number:genNo("GRN"),grn_date:new Date().toISOString().slice(0,10)});
+  const [lines,setLines]=useState([{chemical_id:"",warehouse_id:"",qty:"",unit_cost:"",tax_code_id:""}]);
+  const [res,setRes]=useState(null); const [err,setErr]=useState("");
+  const setLine=(i,k,v)=>setLines(ls=>ls.map((l,j)=>j===i?{...l,[k]:v}:l));
+  const submit=async e=>{ e.preventDefault(); setErr(""); setRes(null);
+    try{ const body={...hdr, lines:lines.map(l=>({chemical_id:l.chemical_id, warehouse_id:l.warehouse_id||null,
+        qty:l.qty, unit_cost:l.unit_cost, tax_code_id:l.tax_code_id||null}))};
+      const r=await api("/api/procurement/grn",{method:"POST",body}); setRes(r);
+      setHdr({...hdr,number:genNo("GRN")});
+      setLines([{chemical_id:"",warehouse_id:"",qty:"",unit_cost:"",tax_code_id:""}]); }
+    catch(ex){ setErr(ex.message); } };
+  return (<Panel title="Goods Receipt Note (chemical / dye purchase)">
+    <form onSubmit={submit}>
+      <div className="row mb">
+        <div className="field"><label>Supplier</label>
+          <Opts items={suppliers} value={hdr.supplier_id} onChange={e=>setHdr({...hdr,supplier_id:e.target.value})}/></div>
+        <div className="field"><label>GRN number</label>
+          <input value={hdr.number} onChange={e=>setHdr({...hdr,number:e.target.value})}/></div>
+        <div className="field"><label>Date</label>
+          <input type="date" value={hdr.grn_date} onChange={e=>setHdr({...hdr,grn_date:e.target.value})}/></div>
+      </div>
+      <table><thead><tr><th>Chemical</th><th>Warehouse</th><th className="num">Qty</th>
+        <th className="num">Unit cost</th><th>Tax</th><th></th></tr></thead>
+      <tbody>{lines.map((l,i)=><tr key={i}>
+        <td><Opts items={chemicals} value={l.chemical_id} onChange={e=>setLine(i,"chemical_id",e.target.value)}/></td>
+        <td><Opts items={warehouses} value={l.warehouse_id} onChange={e=>setLine(i,"warehouse_id",e.target.value)} placeholder="—"/></td>
+        <td className="num"><input style={{width:90}} value={l.qty} onChange={e=>setLine(i,"qty",e.target.value)}/></td>
+        <td className="num"><input style={{width:100}} value={l.unit_cost} onChange={e=>setLine(i,"unit_cost",e.target.value)}/></td>
+        <td><Opts items={taxes} value={l.tax_code_id} onChange={e=>setLine(i,"tax_code_id",e.target.value)} placeholder="—"/></td>
+        <td>{lines.length>1 && <button type="button" className="btn sec" onClick={()=>setLines(ls=>ls.filter((_,j)=>j!==i))}>✕</button>}</td>
+      </tr>)}</tbody></table>
+      <div className="row" style={{marginTop:12}}>
+        <button type="button" className="btn sec" onClick={()=>setLines(ls=>[...ls,{chemical_id:"",warehouse_id:"",qty:"",unit_cost:"",tax_code_id:""}])}>+ Add line</button>
+        <button className="btn">Post GRN</button>
+      </div>
+      {err && <div className="err">{err}</div>}
+    </form>
+    <Result r={res}/>
+  </Panel>);
+}
+
+// ---- transactions: sales invoice ------------------------------------------
+function Sales(){
+  const customers=useList("/api/masters/customers"); const taxes=useList("/api/masters/tax-codes");
+  const [hdr,setHdr]=useState({customer_id:"",number:genNo("INV"),invoice_date:new Date().toISOString().slice(0,10)});
+  const [lines,setLines]=useState([{description:"",qty:"",rate:"",tax_code_id:""}]);
+  const [res,setRes]=useState(null); const [err,setErr]=useState("");
+  const setLine=(i,k,v)=>setLines(ls=>ls.map((l,j)=>j===i?{...l,[k]:v}:l));
+  const submit=async e=>{ e.preventDefault(); setErr(""); setRes(null);
+    try{ const body={...hdr, lines:lines.map(l=>({description:l.description, qty:l.qty, rate:l.rate,
+        tax_code_id:l.tax_code_id||null}))};
+      const r=await api("/api/sales/invoices",{method:"POST",body}); setRes(r);
+      setHdr({...hdr,number:genNo("INV")}); setLines([{description:"",qty:"",rate:"",tax_code_id:""}]); }
+    catch(ex){ setErr(ex.message); } };
+  return (<Panel title="Sales invoice (with GST)">
+    <form onSubmit={submit}>
+      <div className="row mb">
+        <div className="field"><label>Customer</label>
+          <Opts items={customers} value={hdr.customer_id} onChange={e=>setHdr({...hdr,customer_id:e.target.value})}/></div>
+        <div className="field"><label>Invoice number</label>
+          <input value={hdr.number} onChange={e=>setHdr({...hdr,number:e.target.value})}/></div>
+        <div className="field"><label>Date</label>
+          <input type="date" value={hdr.invoice_date} onChange={e=>setHdr({...hdr,invoice_date:e.target.value})}/></div>
+      </div>
+      <table><thead><tr><th>Description</th><th className="num">Qty</th><th className="num">Rate</th><th>Tax</th><th></th></tr></thead>
+      <tbody>{lines.map((l,i)=><tr key={i}>
+        <td><input style={{width:260}} value={l.description} onChange={e=>setLine(i,"description",e.target.value)} placeholder="Dyed fabric"/></td>
+        <td className="num"><input style={{width:90}} value={l.qty} onChange={e=>setLine(i,"qty",e.target.value)}/></td>
+        <td className="num"><input style={{width:90}} value={l.rate} onChange={e=>setLine(i,"rate",e.target.value)}/></td>
+        <td><Opts items={taxes} value={l.tax_code_id} onChange={e=>setLine(i,"tax_code_id",e.target.value)} placeholder="—"/></td>
+        <td>{lines.length>1 && <button type="button" className="btn sec" onClick={()=>setLines(ls=>ls.filter((_,j)=>j!==i))}>✕</button>}</td>
+      </tr>)}</tbody></table>
+      <div className="row" style={{marginTop:12}}>
+        <button type="button" className="btn sec" onClick={()=>setLines(ls=>[...ls,{description:"",qty:"",rate:"",tax_code_id:""}])}>+ Add line</button>
+        <button className="btn">Post invoice</button>
+      </div>
+      {err && <div className="err">{err}</div>}
+    </form>
+    <Result r={res}/>
+  </Panel>);
+}
+
+// ---- transactions: dyeing (batch -> bath -> dispense -> register) ----------
+function Dyeing(){
+  const shades=useList("/api/masters/shades"); const machines=useList("/api/masters/machines?machine_type=DYEING");
+  const versions=useList("/api/masters/recipe-versions");
+  const [batch,setBatch]=useState(null); const [bath,setBath]=useState(null);
+  const [order,setOrder]=useState(null); const [disp,setDisp]=useState(null); const [reg,setReg]=useState(null);
+  const [err,setErr]=useState("");
+  const [bf,setBf]=useState({batch_code:genNo("DY"),fabric_kg:"250",shade_id:""});
+  const [hf,setHf]=useState({bath_code:"",machine_id:"",recipe_version_id:"",fabric_kg:"250"});
+  const go=async(fn)=>{ setErr(""); try{ await fn(); }catch(ex){ setErr(ex.message); } };
+  const createBatch=()=>go(async()=>{ const r=await api("/api/dyeing/batches",{method:"POST",body:bf});
+    setBatch(r); setHf({...hf,bath_code:r.batch_code+"-B01",fabric_kg:bf.fabric_kg}); });
+  const createBath=()=>go(async()=>{ const r=await api("/api/dyeing/baths",{method:"POST",
+    body:{...hf,batch_id:batch.batch_id}}); setBath(r); setOrder(null); setDisp(null); setReg(null); });
+  const preview=()=>go(async()=>setOrder(await api(`/api/dyeing/baths/${bath.bath_id}/dose-order`)));
+  const dispense=()=>go(async()=>{ setDisp(await api(`/api/dyeing/baths/${bath.bath_id}/simulate-dispense`,{method:"POST"}));
+    setReg(await api(`/api/dyeing/baths/${bath.bath_id}/consumption-register`)); });
+  return (<div>
+    <Panel title="1 · Create dye batch">
+      <div className="row">
+        <div className="field"><label>Batch code</label><input value={bf.batch_code}
+          onChange={e=>setBf({...bf,batch_code:e.target.value})}/></div>
+        <div className="field"><label>Fabric (kg)</label><input value={bf.fabric_kg}
+          onChange={e=>setBf({...bf,fabric_kg:e.target.value})}/></div>
+        <div className="field"><label>Shade</label>
+          <Opts items={shades} value={bf.shade_id} onChange={e=>setBf({...bf,shade_id:e.target.value})}/></div>
+        <button className="btn" onClick={createBatch}>Create batch</button>
+      </div>
+      {batch && <div className="muted" style={{marginTop:10}}>Batch {batch.batch_code} created ✓</div>}
+    </Panel>
+    {batch && <Panel title="2 · Add bath (approved recipe)">
+      <div className="row">
+        <div className="field"><label>Bath code</label><input value={hf.bath_code}
+          onChange={e=>setHf({...hf,bath_code:e.target.value})}/></div>
+        <div className="field"><label>Machine</label>
+          <Opts items={machines} value={hf.machine_id} onChange={e=>setHf({...hf,machine_id:e.target.value})}/></div>
+        <div className="field"><label>Recipe version</label>
+          <Opts items={versions} value={hf.recipe_version_id} onChange={e=>setHf({...hf,recipe_version_id:e.target.value})}/></div>
+        <div className="field"><label>Fabric (kg)</label><input value={hf.fabric_kg}
+          onChange={e=>setHf({...hf,fabric_kg:e.target.value})}/></div>
+        <button className="btn" onClick={createBath}>Create bath</button>
+      </div>
+      {bath && <div className="row" style={{marginTop:12}}>
+        <span className="muted" style={{alignSelf:"center"}}>Bath {bath.bath_code} ✓</span>
+        <button className="btn sec" onClick={preview}>Preview dose order</button>
+        <button className="btn" onClick={dispense}>Simulate dispensing</button></div>}
+    </Panel>}
+    {order && <Panel title="Scaled dose order (ERP → Color Service)">
+      <table><thead><tr><th>Seq</th><th>Material</th><th className="num">Target (kg)</th><th>Dye?</th></tr></thead>
+      <tbody>{order.materials.map((m,i)=><tr key={i}><td>{m.sequence}</td><td>{m.material_code}</td>
+        <td className="num">{m.target_qty}</td><td>{m.is_dye?"Dye":"Aux"}</td></tr>)}</tbody></table>
+    </Panel>}
+    {disp && <div className="cards">
+      <Kpi label="Dispensed lines" value={disp.processed} />
+      <Kpi label="Skipped (replay)" value={disp.skipped} />
+      <Kpi label="Consumption cost" value={inr(disp.total_cost)} />
+    </div>}
+    {reg && <Panel title="Bath consumption register (recipe vs actual)">
+      <table><thead><tr><th>Material</th><th className="num">Recipe</th><th className="num">Actual</th>
+        <th className="num">Variance</th><th className="num">Cost</th></tr></thead>
+      <tbody>{reg.rows.map((r,i)=><tr key={i}><td>{r.material_code}</td><td className="num">{r.recipe_target_kg}</td>
+        <td className="num">{r.actual_kg}</td><td className="num">{r.variance_kg}</td>
+        <td className="num">{inr2(r.cost)}</td></tr>)}</tbody>
+      <tfoot><tr><th>Total</th><th></th><th className="num">{reg.total_actual_kg}</th><th></th>
+        <th className="num">{inr2(reg.total_cost)}</th></tr></tfoot></table>
+    </Panel>}
+    {err && <Panel><div className="err">{err}</div></Panel>}
+  </div>);
+}
+
 // ---- shell ----------------------------------------------------------------
 const PAGES={
   owner:{t:"Owner Dashboard",c:OwnerDash}, factory:{t:"Factory Dashboard",c:FactoryDash},
   accounts:{t:"Accounts Dashboard",c:AccountsDash}, chemical:{t:"Chemical Dashboard",c:ChemicalDash},
+  purchase:{t:"Purchase (GRN)",c:Purchase}, sales:{t:"Sales Invoice",c:Sales},
+  dyeing:{t:"Dyeing & Dispensing",c:Dyeing},
+  customers:{t:"Customers",c:()=> <PartyPage kind="customers"/>},
+  suppliers:{t:"Suppliers",c:()=> <PartyPage kind="suppliers"/>},
   warehouses:{t:"Warehouses",c:Warehouses}, quality:{t:"Quality & Finishing",c:Quality},
   reports:{t:"Reports",c:Reports},
 };
@@ -292,7 +501,11 @@ function App(){
         <div className="group">Dashboards</div>
         {navBtn("owner","Owner")}{navBtn("factory","Factory")}
         {navBtn("accounts","Accounts")}{navBtn("chemical","Chemical")}
-        <div className="group">Masters</div>{navBtn("warehouses","Warehouses")}
+        <div className="group">Transactions</div>
+        {navBtn("purchase","Purchase (GRN)")}{navBtn("sales","Sales Invoice")}
+        {navBtn("dyeing","Dyeing & Dispensing")}
+        <div className="group">Masters</div>
+        {navBtn("customers","Customers")}{navBtn("suppliers","Suppliers")}{navBtn("warehouses","Warehouses")}
         <div className="group">Quality</div>{navBtn("quality","Quality")}
         <div className="group">Reports</div>{navBtn("reports","Reports")}
         <div className="group">Session</div>
