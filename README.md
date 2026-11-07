@@ -37,6 +37,10 @@ specified (pending-verification) Color Service dispensing integration.
   (B2B/B2C, rate-wise, HSN-wise), **GSTR-3B** summary (outward tax, eligible
   ITC, net payable), and a **books-vs-registers reconciliation**; rates come
   from configurable tax codes, never hardcoded.
+- **Banking** (Stage 7) — customer receipt / supplier payment / contra / bank
+  charge postings, **CSV bank-statement import** (idempotent), and **bank
+  reconciliation** (auto-match by amount + date, outstanding/in-transit items,
+  difference explained).
 
 **Operations (Stage 2–4)**
 - **Procurement** — chemical/dye GRN → FIFO stock layer + GST purchase voucher.
@@ -56,7 +60,7 @@ specified (pending-verification) Color Service dispensing integration.
 **Platform** — JWT auth + RBAC (15 roles), REST API, Alembic migrations,
 idempotent seed + demo data, Docker Compose.
 
-`54 passing tests` cover the accounting invariants, the nine worked posting
+`58 passing tests` cover the accounting invariants, the nine worked posting
 examples, correction dosing, RBAC, full-cycle trial balance, procurement,
 knitting, recipe scaling, the full dispensing cycle, end-to-end traceability,
 the financial statements (P&L / Balance Sheet / Cash Flow / ageing), GST
@@ -117,15 +121,15 @@ erp/
     ├── app/
     │   ├── core/              # config, db, security, Decimal types, ledger guard, deps
     │   ├── models/            # core, masters, accounting, inventory, commercial,
-    │   │                      #   manufacturing, dispensing, audit (ORM)
-    │   ├── services/          # posting engine, trial balance, posting rules, tax,
-    │   │                      #   inventory (FIFO), procurement, sales, knitting,
-    │   │                      #   recipes, colorservice (adapter/simulator/ingest)
-    │   ├── api/routes/        # auth, masters, accounts, vouchers, reports, operations
+    │   │                      #   manufacturing, dispensing, banking, audit (ORM)
+    │   ├── services/          # posting engine, trial balance, financial statements,
+    │   │                      #   gst, posting rules, tax, inventory (FIFO), banking,
+    │   │                      #   procurement, sales, knitting, recipes, colorservice
+    │   ├── api/routes/        # auth, masters, accounts, vouchers, reports, operations, banking
     │   └── seed/              # chart of accounts, RBAC, seeder, demo data
     ├── alembic/               # migrations (baseline from metadata)
-    └── tests/                 # 54 tests: invariants, posting matrix, TB, procurement,
-                               #   knitting, dyeing+dispensing, traceability, statements, gst, API
+    └── tests/                 # 58 tests: invariants, posting matrix, TB, procurement,
+                               #   knitting, dyeing+dispensing, traceability, statements, gst, banking, API
 ```
 
 ## Stage status (brief §22)
@@ -138,7 +142,7 @@ erp/
 | 4 | Color Service integration + bath-wise consumption | **Done via simulator** (live adapter pending vendor) |
 | 5 | Chemical inventory + inventory accounting | **Done** (FIFO valuation + GL reconciliation) |
 | 6 | Double-entry engine, chart of accounts, vouchers | **Done** (core + TB) |
-| 7 | GST, banking, financial statements, reconciliation | **P&L + BS + Cash Flow + ageing + GST registers/GSTR-1/3B/reconciliation done**; bank-rec & e-invoice/e-way pending |
+| 7 | GST, banking, financial statements, reconciliation | **P&L + BS + Cash Flow + ageing + GST (registers/GSTR-1/3B) + banking + reconciliation done**; e-invoice/e-way pending |
 | 8 | Costing, finishing, quality, dashboards | Cost centres + bath costing done; dashboards pending |
 | 9 | Reports, security hardening, deployment | RBAC + Docker + API done; report exports pending |
 
@@ -162,9 +166,10 @@ erp/
 | 15 | Trial balance debit == credit | ✅ `test_trial_balance…` |
 | 18 | Reconnect integration → no duplicates | ✅ `test_reconnect_does_not_duplicate` |
 | 19 | No unauthorized change to posted/dispensing data | ✅ `test_posted_*`, `test_rbac_*` |
+| 14 | Record customer payment and reconcile the bank | ✅ `test_banking`, `test_reconciliation_flags_unbooked_charge_then_reconciles` |
 | 16 | Generate Profit & Loss and Balance Sheet | ✅ `test_profit_and_loss`, `test_balance_sheet_balances` |
 | 20 | Trace finished roll → order/yarn/machine/batch/bath/lot/GL | ✅ `test_full_chain_traceability` |
-| 14, 17 | Bank reconciliation / stock-GL reconciliation report | ⏳ partial — receipt postings & FIFO valuation exist; dedicated bank-rec & reconciliation reports pending |
+| 17 | Stock-GL reconciliation report | ⏳ partial — FIFO valuation + control-account check exist; dedicated report pending |
 
 ## Non-negotiables honoured
 
