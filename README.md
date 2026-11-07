@@ -65,10 +65,20 @@ specified (pending-verification) Color Service dispensing integration.
   sales/purchase registers, GSTR-3B, and the dye-bath consumption register
   (one report-document model renders to both formats).
 
+- **Management dashboards** (Stage 8) — Owner (revenue, gross/net profit, cash &
+  bank, receivables, payables, inventory value, sales trend), Factory (knitting/
+  dyeing output, active batches, chemical cost), Accounts (today's receipts/
+  payments, bank balances, debtors/creditors, GST payable, TB status), and
+  Chemical (dye/chemical cost, top consumption, stock alerts, dispensing errors).
+- **Web UI** — a self-contained React SPA (dark-navy sidebar, KPI cards, Recharts
+  charts) served at **`/app/`**: four dashboards, warehouse master management
+  (add/list), and authenticated Excel/PDF report downloads. No build step and no
+  runtime CDN — libraries are vendored and the JSX is precompiled.
+
 **Platform** — JWT auth + RBAC (15 roles), REST API, Alembic migrations,
 idempotent seed + demo data, Docker Compose.
 
-`65 passing tests` cover the accounting invariants, the nine worked posting
+`71 passing tests` cover the accounting invariants, the nine worked posting
 examples, correction dosing, RBAC, full-cycle trial balance, procurement,
 knitting, recipe scaling, the full dispensing cycle, end-to-end traceability,
 the financial statements (P&L / Balance Sheet / Cash Flow / ageing), GST
@@ -107,9 +117,18 @@ python -m app.seed.seed
 uvicorn app.main:app --reload
 ```
 
+Then open the **web UI** at **http://localhost:8000/app/** and sign in with the
+seeded admin (below). The dashboards show data once the demo/manufacturing data
+is present (tests seed it; for a live DB, create documents via the API/UI).
+
 ### Run the tests
 ```bash
 cd erp/backend && . .venv/bin/activate && pytest
+```
+
+### Rebuild the UI assets (only if you change `app.src.jsx`)
+```bash
+cd erp/frontend && ./build-ui.sh   # needs npm; re-vendors libs + recompiles app.js
 ```
 
 ### First login
@@ -125,19 +144,26 @@ curl -s -X POST http://localhost:8000/api/auth/login \
 erp/
 ├── docs/                      # the four design documents
 ├── docker-compose.yml
+├── frontend/                 # self-contained React SPA served at /app/
+│   ├── index.html            #   dark-navy sidebar, dashboards, warehouse master
+│   ├── app.src.jsx           #   source JSX (precompiled to app.js by build-ui.sh)
+│   ├── app.js                #   generated — no runtime Babel
+│   └── vendor/               #   vendored React / ReactDOM / Recharts (no CDN)
 └── backend/
     ├── app/
-    │   ├── core/              # config, db, security, Decimal types, ledger guard, deps
-    │   ├── models/            # core, masters, accounting, inventory, commercial,
-    │   │                      #   manufacturing, dispensing, banking, audit (ORM)
-    │   ├── services/          # posting engine, trial balance, financial statements,
-    │   │                      #   gst, stock reconciliation, exports, posting rules, tax, inventory,
-    │   │                      #   procurement, sales, knitting, recipes, colorservice
-    │   ├── api/routes/        # auth, masters, accounts, vouchers, reports, operations, banking
-    │   └── seed/              # chart of accounts, RBAC, seeder, demo data
-    ├── alembic/               # migrations (baseline from metadata)
-    └── tests/                 # 65 tests: invariants, posting matrix, TB, procurement,
-                               #   knitting, dyeing+dispensing, traceability, statements, gst, banking, exports, API
+    │   ├── core/             # config, db, security, Decimal types, ledger guard, deps
+    │   ├── models/           # core, masters, accounting, inventory, commercial,
+    │   │                     #   manufacturing, dispensing, banking, audit (ORM)
+    │   ├── services/         # posting engine, trial balance, financial statements, gst,
+    │   │                     #   stock reconciliation, dashboard, exports, inventory (FIFO),
+    │   │                     #   banking, procurement, sales, knitting, recipes, colorservice
+    │   ├── api/routes/       # auth, masters, accounts, vouchers, reports, operations,
+    │   │                     #   banking, dashboard
+    │   └── seed/             # chart of accounts, RBAC, seeder, demo data
+    ├── alembic/              # migrations (baseline from metadata)
+    └── tests/                # 71 tests: invariants, posting matrix, TB, procurement,
+                              #   knitting, dyeing+dispensing, traceability, statements,
+                              #   gst, banking, exports, dashboards, reconciliation, API
 ```
 
 ## Stage status (brief §22)
@@ -151,7 +177,7 @@ erp/
 | 5 | Chemical inventory + inventory accounting | **Done** (FIFO valuation + GL reconciliation) |
 | 6 | Double-entry engine, chart of accounts, vouchers | **Done** (core + TB) |
 | 7 | GST, banking, financial statements, reconciliation | **P&L + BS + Cash Flow + ageing + GST (registers/GSTR-1/3B) + banking + reconciliation done**; e-invoice/e-way pending |
-| 8 | Costing, finishing, quality, dashboards | Cost centres + bath costing done; dashboards pending |
+| 8 | Costing, finishing, quality, dashboards | Cost centres + bath costing + **4 dashboards + web UI** done; finishing/quality pending |
 | 9 | Reports, security hardening, deployment | RBAC + Docker + API + **Excel/PDF exports** done; more report coverage + UI pending |
 
 ## Acceptance-test coverage (brief §23)

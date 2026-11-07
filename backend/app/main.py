@@ -1,9 +1,21 @@
 """FastAPI application entrypoint."""
 from __future__ import annotations
 
-from fastapi import FastAPI
+from pathlib import Path
 
-from app.api.routes import accounts, auth, banking, masters, operations, reports, vouchers
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+
+from app.api.routes import (
+    accounts,
+    auth,
+    banking,
+    dashboard,
+    masters,
+    operations,
+    reports,
+    vouchers,
+)
 from app.core.config import settings
 
 app = FastAPI(
@@ -23,8 +35,15 @@ app.include_router(vouchers.router)
 app.include_router(reports.router)
 app.include_router(operations.router)
 app.include_router(banking.router)
+app.include_router(dashboard.router)
 
 
 @app.get("/health", tags=["system"])
 def health() -> dict:
     return {"status": "ok", "app": settings.app_name, "environment": settings.environment}
+
+
+# Serve the web UI (static SPA) at /app, if present.
+_FRONTEND = Path(__file__).resolve().parents[2] / "frontend"
+if _FRONTEND.is_dir():
+    app.mount("/app", StaticFiles(directory=str(_FRONTEND), html=True), name="frontend")
