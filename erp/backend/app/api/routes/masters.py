@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import require_permission
 from app.models.core import User
-from app.models.masters import Customer, Supplier
-from app.schemas import CustomerCreate, PartyOut, SupplierCreate
+from app.models.masters import Customer, Supplier, Warehouse
+from app.schemas import CustomerCreate, PartyOut, SupplierCreate, WarehouseCreate, WarehouseOut
 
 router = APIRouter(prefix="/api/masters", tags=["masters"])
 
@@ -70,3 +70,32 @@ def create_supplier(
     db.commit()
     db.refresh(sup)
     return sup
+
+
+@router.get("/warehouses", response_model=list[WarehouseOut])
+def list_warehouses(
+    db: Session = Depends(get_db), user: User = Depends(require_permission("master.read"))
+):
+    return (
+        db.execute(select(Warehouse).where(Warehouse.company_id == user.company_id).order_by(Warehouse.code))
+        .scalars()
+        .all()
+    )
+
+
+@router.post("/warehouses", response_model=WarehouseOut, status_code=status.HTTP_201_CREATED)
+def create_warehouse(
+    payload: WarehouseCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("master.write")),
+):
+    exists = db.execute(
+        select(Warehouse).where(Warehouse.company_id == user.company_id, Warehouse.code == payload.code)
+    ).scalar_one_or_none()
+    if exists:
+        raise HTTPException(status.HTTP_409_CONFLICT, f"Warehouse code {payload.code} already exists")
+    wh = Warehouse(company_id=user.company_id, created_by=user.id, **payload.model_dump())
+    db.add(wh)
+    db.commit()
+    db.refresh(wh)
+    return wh

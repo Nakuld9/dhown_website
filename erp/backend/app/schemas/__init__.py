@@ -62,6 +62,20 @@ class PartyOut(ORMModel):
     state_code: str | None = None
 
 
+class WarehouseCreate(BaseModel):
+    code: str
+    name: str
+    kind: str = "STORE"  # STORE / GREIGE / FG / DISPENSING_TANK
+
+
+class WarehouseOut(ORMModel):
+    id: uuid.UUID
+    code: str
+    name: str
+    kind: str
+    is_active: bool
+
+
 # --- chart of accounts ------------------------------------------------------
 
 class AccountOut(ORMModel):
