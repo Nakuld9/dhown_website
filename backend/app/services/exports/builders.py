@@ -11,6 +11,7 @@ from app.models.manufacturing import DyeBath
 from app.models.masters import Customer, Supplier
 from app.services.accounting import financial_statements as fs
 from app.services.accounting import gst as gst_svc
+from app.services.accounting import stock_reconciliation as stock_recon
 from app.services.accounting import trial_balance as tb
 from app.services.colorservice.register import bath_consumption_register
 from app.services.exports.document import Column, ReportDoc, Summary, Table
@@ -149,6 +150,21 @@ def _bath_register(db, company_id, bath_id) -> ReportDoc:
                      ])
 
 
+def _stock_reconciliation(db, company_id, as_of) -> ReportDoc:
+    data = stock_recon.stock_ledger_reconciliation(db, company_id, as_of=as_of)
+    cols = [Column("A/c", "account"), Column("Control account", "label"),
+            Column("Stock value", "stock_value", True), Column("Ledger balance", "ledger_balance", True),
+            Column("Difference", "difference", True), Column("Matched", "matched")]
+    rows = [{**r, "matched": "Yes" if r["matched"] else "No"} for r in data["rows"]]
+    total = {"stock_value": data["total_stock_value"], "ledger_balance": data["total_ledger_balance"],
+             "difference": data["total_difference"]}
+    sub = f"As at {as_of.isoformat()}" if as_of else "Current"
+    return ReportDoc("Stock vs GL Reconciliation", sub, [
+        Table("Inventory control accounts", cols, rows, total),
+        Summary("Result", [("Reconciled", "Yes" if data["is_reconciled"] else "No")]),
+    ])
+
+
 # ------------------------------- dispatch ----------------------------------
 
 def build_report(db: Session, company_id: uuid.UUID, report: str, *, date_from: date | None = None,
@@ -178,11 +194,13 @@ def build_report(db: Session, company_id: uuid.UUID, report: str, *, date_from: 
         if not bath_id:
             raise ValueError("bath_id is required for the bath-register export")
         return _bath_register(db, company_id, bath_id)
+    if report == "stock-reconciliation":
+        return _stock_reconciliation(db, company_id, aod)
     raise ValueError(f"Unknown report '{report}'")
 
 
 REPORTS = [
     "trial-balance", "profit-and-loss", "balance-sheet", "cash-flow",
     "debtors-ageing", "creditors-ageing", "gst-sales-register",
-    "gst-purchase-register", "gstr3b", "bath-register",
+    "gst-purchase-register", "gstr3b", "bath-register", "stock-reconciliation",
 ]

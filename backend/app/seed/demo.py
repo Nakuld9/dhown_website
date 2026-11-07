@@ -10,9 +10,12 @@ Returns a dict of handles keyed for convenient use in tests.
 from __future__ import annotations
 
 import uuid
+from datetime import date
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
+
+from app.services.accounting import posting_engine as pe
 
 from app.models.accounting import ChartOfAccount
 from app.models.inventory import ItemType
@@ -52,7 +55,8 @@ RECIPE_MATERIALS = [
 ]
 
 
-def seed_manufacturing_demo(db: Session, company_id: uuid.UUID, *, opening_qty: str = "500") -> dict:
+def seed_manufacturing_demo(db: Session, company_id: uuid.UUID, *, opening_qty: str = "500",
+                            opening_fy_year: int = 2026) -> dict:
     tax = TaxCode(company_id=company_id, code="GST18", name="GST 18%",
                   cgst_rate=Decimal("9"), sgst_rate=Decimal("9"), igst_rate=Decimal("18"), hsn_sac="5208")
     db.add(tax)
@@ -78,6 +82,8 @@ def seed_manufacturing_demo(db: Session, company_id: uuid.UUID, *, opening_qty: 
     db.add(bank)
     db.flush()
 
+    opening_values = {"1100": Decimal("0"), "1090": Decimal("0"), "1060": Decimal("0")}
+
     chemicals: dict[str, Chemical] = {}
     lots: dict[str, ChemicalLot] = {}
     for code, name, is_dye, dye_class, cost in CHEMICALS:
@@ -97,6 +103,7 @@ def seed_manufacturing_demo(db: Session, company_id: uuid.UUID, *, opening_qty: 
             qty=opening_qty, unit_cost=Decimal(cost), lot_id=lot.id, warehouse_id=wh_chem.id,
             event_type="OPENING", source_module="seed", source_id="opening",
         )
+        opening_values["1090" if is_dye else "1100"] += Decimal(opening_qty) * Decimal(cost)
 
     yarn = YarnMaster(company_id=company_id, code="Y-30S", name="30s Combed Cotton",
                       yarn_type="Cotton", count="30s")
@@ -107,6 +114,7 @@ def seed_manufacturing_demo(db: Session, company_id: uuid.UUID, *, opening_qty: 
         qty="2000", unit_cost=Decimal("240"), event_type="OPENING",
         source_module="seed", source_id="opening",
     )
+    opening_values["1060"] += Decimal("2000") * Decimal("240")
 
     knit = Machine(company_id=company_id, machine_type=MachineType.KNITTING.value, code="K-01",
                    name="Knitting Machine 1", capacity_kg=Decimal("300"))
@@ -134,6 +142,20 @@ def seed_manufacturing_demo(db: Session, company_id: uuid.UUID, *, opening_qty: 
         db.add(RecipeMaterial(version_id=version.id, chemical_id=chemicals[code].id,
                               sequence=seq, percent_owf=Decimal(pct),
                               dosing_group="dye" if chemicals[code].is_dye else "aux"))
+    db.flush()
+
+    # Post an opening-balance voucher so the inventory sub-ledger ties to the GL
+    # control accounts (Dr inventory accounts / Cr owner's capital).
+    opening_lines = [pe.PostingLine(code, debit=val)
+                     for code, val in opening_values.items() if val > 0]
+    if opening_lines:
+        total = sum((ln.debit for ln in opening_lines), Decimal("0"))
+        opening_lines.append(pe.PostingLine("3010", credit=total, narration="Opening stock capital"))
+        pe.post_voucher(db, pe.PostingRequest(
+            company_id=company_id, voucher_type_code="OB", voucher_date=date(opening_fy_year, 4, 1),
+            posting_reference="OB:opening-stock", narration="Opening stock",
+            source_module="seed", lines=opening_lines,
+        ))
     db.flush()
 
     return {

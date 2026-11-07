@@ -57,6 +57,9 @@ specified (pending-verification) Color Service dispensing integration.
   (recipe vs actual, variance, cost, per-kg).
 - **Sales** — GST sales invoice posting (receivable + output tax).
 
+- **Stock vs GL reconciliation** (TEST 17) — per control account, perpetual
+  **value-based** FIFO inventory valuation vs the general-ledger balance, with
+  per-account differences and an `is_reconciled` flag; ties to the paisa.
 - **Report exports** (Stage 9) — one-call **Excel (.xlsx)** and **PDF** export
   for trial balance, P&L, Balance Sheet, cash flow, debtor/creditor ageing, GST
   sales/purchase registers, GSTR-3B, and the dye-bath consumption register
@@ -65,7 +68,7 @@ specified (pending-verification) Color Service dispensing integration.
 **Platform** — JWT auth + RBAC (15 roles), REST API, Alembic migrations,
 idempotent seed + demo data, Docker Compose.
 
-`62 passing tests` cover the accounting invariants, the nine worked posting
+`65 passing tests` cover the accounting invariants, the nine worked posting
 examples, correction dosing, RBAC, full-cycle trial balance, procurement,
 knitting, recipe scaling, the full dispensing cycle, end-to-end traceability,
 the financial statements (P&L / Balance Sheet / Cash Flow / ageing), GST
@@ -128,12 +131,12 @@ erp/
     │   ├── models/            # core, masters, accounting, inventory, commercial,
     │   │                      #   manufacturing, dispensing, banking, audit (ORM)
     │   ├── services/          # posting engine, trial balance, financial statements,
-    │   │                      #   gst, exports (xlsx/pdf), posting rules, tax, inventory,
+    │   │                      #   gst, stock reconciliation, exports, posting rules, tax, inventory,
     │   │                      #   procurement, sales, knitting, recipes, colorservice
     │   ├── api/routes/        # auth, masters, accounts, vouchers, reports, operations, banking
     │   └── seed/              # chart of accounts, RBAC, seeder, demo data
     ├── alembic/               # migrations (baseline from metadata)
-    └── tests/                 # 62 tests: invariants, posting matrix, TB, procurement,
+    └── tests/                 # 65 tests: invariants, posting matrix, TB, procurement,
                                #   knitting, dyeing+dispensing, traceability, statements, gst, banking, exports, API
 ```
 
@@ -173,8 +176,8 @@ erp/
 | 19 | No unauthorized change to posted/dispensing data | ✅ `test_posted_*`, `test_rbac_*` |
 | 14 | Record customer payment and reconcile the bank | ✅ `test_banking`, `test_reconciliation_flags_unbooked_charge_then_reconciles` |
 | 16 | Generate Profit & Loss and Balance Sheet | ✅ `test_profit_and_loss`, `test_balance_sheet_balances` |
+| 17 | Reconcile stock valuation with inventory control accounts | ✅ `test_stock_reconciliation` |
 | 20 | Trace finished roll → order/yarn/machine/batch/bath/lot/GL | ✅ `test_full_chain_traceability` |
-| 17 | Stock-GL reconciliation report | ⏳ partial — FIFO valuation + control-account check exist; dedicated report pending |
 
 ## Non-negotiables honoured
 
