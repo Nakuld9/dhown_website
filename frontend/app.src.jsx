@@ -478,6 +478,49 @@ function Dyeing(){
   </div>);
 }
 
+// ---- costing --------------------------------------------------------------
+function Costing(){
+  const [cpk,errc]=useData("/api/costing/cost-per-kg");
+  const custs=useList("/api/costing/customers"); const orders=useList("/api/costing/orders");
+  const machines=useList("/api/costing/machines");
+  const pct = v => (Number(v||0)).toFixed(1)+"%";
+  return (<div>
+    <div className="cards">
+      <Kpi label="Knitted cost / kg" value={cpk?inr(cpk.knitted_cost_per_kg):"…"} />
+      <Kpi label="Dyeing cost / kg" value={cpk?inr(cpk.dyeing_cost_per_kg):"…"} />
+      <Kpi label="Knitted output (kg)" value={cpk?inr2(cpk.knitted_kg):"…"} />
+      <Kpi label="Dyed output (kg)" value={cpk?inr2(cpk.dyed_kg):"…"} />
+    </div>
+    <Panel title="Customer profitability">
+      {custs.length===0 ? <div className="muted">No billed customers yet.</div> :
+      <table><thead><tr><th>Customer</th><th className="num">Revenue</th><th className="num">Cost</th>
+        <th className="num">Gross profit</th><th className="num">Margin</th></tr></thead>
+      <tbody>{custs.map((c,i)=><tr key={i}><td>{c.customer}</td><td className="num">{inr2(c.revenue)}</td>
+        <td className="num">{inr2(c.cost)}</td>
+        <td className="num" style={{color:Number(c.gross_profit)>=0?"#16a34a":"#dc2626"}}>{inr2(c.gross_profit)}</td>
+        <td className="num">{pct(c.margin_pct)}</td></tr>)}</tbody></table>}
+    </Panel>
+    <Panel title="Order profitability">
+      {orders.filter(o=>Number(o.revenue)||Number(o.total_cost)).length===0 ?
+        <div className="muted">No orders with activity yet.</div> :
+      <table><thead><tr><th>Order</th><th className="num">Revenue</th><th className="num">Yarn</th>
+        <th className="num">Dyeing</th><th className="num">Total cost</th><th className="num">Gross profit</th>
+        <th className="num">Margin</th></tr></thead>
+      <tbody>{orders.filter(o=>Number(o.revenue)||Number(o.total_cost)).map((o,i)=><tr key={i}>
+        <td>{o.order_number}</td><td className="num">{inr2(o.revenue)}</td><td className="num">{inr2(o.yarn_cost)}</td>
+        <td className="num">{inr2(o.dyeing_cost)}</td><td className="num">{inr2(o.total_cost)}</td>
+        <td className="num" style={{color:Number(o.gross_profit)>=0?"#16a34a":"#dc2626"}}>{inr2(o.gross_profit)}</td>
+        <td className="num">{pct(o.margin_pct)}</td></tr>)}</tbody></table>}
+    </Panel>
+    <Panel title="Machine-wise cost">
+      {machines.length===0 ? <div className="muted">No machine cost yet.</div> :
+      <table><thead><tr><th>Machine</th><th>Type</th><th className="num">Cost</th></tr></thead>
+      <tbody>{machines.map((m,i)=><tr key={i}><td>{m.machine}</td><td>{m.machine_type}</td>
+        <td className="num">{inr2(m.cost)}</td></tr>)}</tbody></table>}
+    </Panel>
+  </div>);
+}
+
 // ---- shell ----------------------------------------------------------------
 const PAGES={
   owner:{t:"Owner Dashboard",c:OwnerDash}, factory:{t:"Factory Dashboard",c:FactoryDash},
@@ -487,7 +530,7 @@ const PAGES={
   customers:{t:"Customers",c:()=> <PartyPage kind="customers"/>},
   suppliers:{t:"Suppliers",c:()=> <PartyPage kind="suppliers"/>},
   warehouses:{t:"Warehouses",c:Warehouses}, quality:{t:"Quality & Finishing",c:Quality},
-  reports:{t:"Reports",c:Reports},
+  costing:{t:"Costing & Profitability",c:Costing}, reports:{t:"Reports",c:Reports},
 };
 function App(){
   const [page,setPage]=useState("owner"); const [me,setMe]=useState(null);
@@ -507,6 +550,7 @@ function App(){
         <div className="group">Masters</div>
         {navBtn("customers","Customers")}{navBtn("suppliers","Suppliers")}{navBtn("warehouses","Warehouses")}
         <div className="group">Quality</div>{navBtn("quality","Quality")}
+        <div className="group">Costing</div>{navBtn("costing","Costing")}
         <div className="group">Reports</div>{navBtn("reports","Reports")}
         <div className="group">Session</div>
         <button onClick={()=>{setToken(null); location.reload();}}>Log out</button>
