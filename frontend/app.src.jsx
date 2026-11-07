@@ -210,11 +210,75 @@ function Reports(){
   </Panel>);
 }
 
+// ---- quality --------------------------------------------------------------
+const RESULT_CLS={ACCEPT:"ok",REWORK:"warn",REJECT:"bad"};
+function Quality(){
+  const [sum,setSum]=useState(null); const [insp,setInsp]=useState([]); const [comp,setComp]=useState([]);
+  const [err,setErr]=useState("");
+  const [f,setF]=useState({delta_e:"",shade_match:true,inspected_qty:"",rejection_qty:"",colour_fastness:""});
+  const load=useCallback(()=>{
+    api("/api/quality/summary").then(setSum).catch(e=>setErr(e.message));
+    api("/api/quality/inspections").then(setInsp).catch(()=>{});
+    api("/api/quality/complaints").then(setComp).catch(()=>{});
+  },[]);
+  useEffect(()=>{load()},[load]);
+  const add=async e=>{ e.preventDefault(); setErr("");
+    const body={inspection_date:new Date().toISOString().slice(0,10),
+      delta_e:f.delta_e||null, shade_match:f.shade_match,
+      inspected_qty:f.inspected_qty||null, rejection_qty:f.rejection_qty||null,
+      colour_fastness:f.colour_fastness||null};
+    try{ await api("/api/quality/inspections",{method:"POST",body});
+      setF({delta_e:"",shade_match:true,inspected_qty:"",rejection_qty:"",colour_fastness:""}); load(); }
+    catch(ex){ setErr(ex.message); } };
+  return (<div>
+    <div className="cards">
+      <Kpi label="Inspections" value={sum?sum.inspections:"…"} />
+      <Kpi label="Accepted" value={sum?sum.accepted:"…"} cls="pos" />
+      <Kpi label="Rework" value={sum?sum.rework:"…"} />
+      <Kpi label="Rejected" value={sum?sum.rejected:"…"} cls={sum&&sum.rejected?"neg":""} />
+      <Kpi label="Rejection rate" value={sum?Number(sum.rejection_rate_pct).toFixed(1)+"%":"…"} />
+      <Kpi label="Open complaints" value={sum?sum.open_complaints:"…"} cls={sum&&sum.open_complaints?"neg":""} />
+    </div>
+    <Panel title="Record inspection">
+      <form className="row" onSubmit={add}>
+        <div className="field"><label>Delta E</label>
+          <input value={f.delta_e} onChange={e=>setF({...f,delta_e:e.target.value})} placeholder="0.8"/></div>
+        <div className="field"><label>Inspected qty</label>
+          <input value={f.inspected_qty} onChange={e=>setF({...f,inspected_qty:e.target.value})} placeholder="100"/></div>
+        <div className="field"><label>Rejection qty</label>
+          <input value={f.rejection_qty} onChange={e=>setF({...f,rejection_qty:e.target.value})} placeholder="0"/></div>
+        <div className="field"><label>Fastness</label>
+          <input value={f.colour_fastness} onChange={e=>setF({...f,colour_fastness:e.target.value})} placeholder="4-5"/></div>
+        <div className="field"><label>Shade match</label>
+          <select value={f.shade_match?"yes":"no"} onChange={e=>setF({...f,shade_match:e.target.value==="yes"})}>
+            <option value="yes">Yes</option><option value="no">No</option></select></div>
+        <button className="btn">Record (auto-grades result)</button>
+      </form>
+      {err && <div className="err">{err}</div>}
+    </Panel>
+    <Panel title="Recent inspections">
+      {insp.length===0 ? <div className="muted">No inspections yet.</div> :
+      <table><thead><tr><th>No.</th><th>Date</th><th>Delta E</th><th>Fastness</th><th>Result</th></tr></thead>
+      <tbody>{insp.slice(0,15).map(r=><tr key={r.id}><td>{r.number}</td><td>{r.inspection_date}</td>
+        <td>{r.delta_e||"-"}</td><td>{r.colour_fastness||"-"}</td>
+        <td><span className={"badge "+(RESULT_CLS[r.result]||"")}>{r.result}</span></td></tr>)}</tbody></table>}
+    </Panel>
+    <Panel title="Customer complaints">
+      {comp.length===0 ? <div className="muted">No complaints.</div> :
+      <table><thead><tr><th>No.</th><th>Date</th><th>Severity</th><th>Status</th><th>Description</th></tr></thead>
+      <tbody>{comp.slice(0,15).map(r=><tr key={r.id}><td>{r.number}</td><td>{r.complaint_date}</td>
+        <td>{r.severity}</td><td><span className={"badge "+(r.status==="OPEN"?"warn":"ok")}>{r.status}</span></td>
+        <td>{r.description}</td></tr>)}</tbody></table>}
+    </Panel>
+  </div>);
+}
+
 // ---- shell ----------------------------------------------------------------
 const PAGES={
   owner:{t:"Owner Dashboard",c:OwnerDash}, factory:{t:"Factory Dashboard",c:FactoryDash},
   accounts:{t:"Accounts Dashboard",c:AccountsDash}, chemical:{t:"Chemical Dashboard",c:ChemicalDash},
-  warehouses:{t:"Warehouses",c:Warehouses}, reports:{t:"Reports",c:Reports},
+  warehouses:{t:"Warehouses",c:Warehouses}, quality:{t:"Quality & Finishing",c:Quality},
+  reports:{t:"Reports",c:Reports},
 };
 function App(){
   const [page,setPage]=useState("owner"); const [me,setMe]=useState(null);
@@ -229,6 +293,7 @@ function App(){
         {navBtn("owner","Owner")}{navBtn("factory","Factory")}
         {navBtn("accounts","Accounts")}{navBtn("chemical","Chemical")}
         <div className="group">Masters</div>{navBtn("warehouses","Warehouses")}
+        <div className="group">Quality</div>{navBtn("quality","Quality")}
         <div className="group">Reports</div>{navBtn("reports","Reports")}
         <div className="group">Session</div>
         <button onClick={()=>{setToken(null); location.reload();}}>Log out</button>

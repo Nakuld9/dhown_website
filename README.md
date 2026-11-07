@@ -65,20 +65,27 @@ specified (pending-verification) Color Service dispensing integration.
   sales/purchase registers, GSTR-3B, and the dye-bath consumption register
   (one report-document model renders to both formats).
 
+- **Finishing & quality** (Stage 8) — finishing transactions (hydro/slitting/
+  drying/stenter/compacting/raising/heat-setting) with shrinkage and roll
+  finishing; **quality inspection** auto-graded from Delta E + shade match →
+  accept/rework/reject (updates roll status); **customer complaints** with
+  resolution; and a quality summary (rejection rate, avg Delta E, open
+  complaints).
 - **Management dashboards** (Stage 8) — Owner (revenue, gross/net profit, cash &
   bank, receivables, payables, inventory value, sales trend), Factory (knitting/
   dyeing output, active batches, chemical cost), Accounts (today's receipts/
   payments, bank balances, debtors/creditors, GST payable, TB status), and
   Chemical (dye/chemical cost, top consumption, stock alerts, dispensing errors).
 - **Web UI** — a self-contained React SPA (dark-navy sidebar, KPI cards, Recharts
-  charts) served at **`/app/`**: four dashboards, warehouse master management
+  charts) served at **`/app/`**: four dashboards, a **Quality & Finishing** page
+  (inspection form, result badges, complaints), warehouse master management
   (add/list), and authenticated Excel/PDF report downloads. No build step and no
   runtime CDN — libraries are vendored and the JSX is precompiled.
 
 **Platform** — JWT auth + RBAC (15 roles), REST API, Alembic migrations,
 idempotent seed + demo data, Docker Compose.
 
-`71 passing tests` cover the accounting invariants, the nine worked posting
+`77 passing tests` cover the accounting invariants, the nine worked posting
 examples, correction dosing, RBAC, full-cycle trial balance, procurement,
 knitting, recipe scaling, the full dispensing cycle, end-to-end traceability,
 the financial statements (P&L / Balance Sheet / Cash Flow / ageing), GST
@@ -161,9 +168,9 @@ erp/
     │   │                     #   banking, dashboard
     │   └── seed/             # chart of accounts, RBAC, seeder, demo data
     ├── alembic/              # migrations (baseline from metadata)
-    └── tests/                # 71 tests: invariants, posting matrix, TB, procurement,
+    └── tests/                # 77 tests: invariants, posting matrix, TB, procurement,
                               #   knitting, dyeing+dispensing, traceability, statements,
-                              #   gst, banking, exports, dashboards, reconciliation, API
+                              #   gst, banking, exports, dashboards, quality, API
 ```
 
 ## Stage status (brief §22)
@@ -177,7 +184,7 @@ erp/
 | 5 | Chemical inventory + inventory accounting | **Done** (FIFO valuation + GL reconciliation) |
 | 6 | Double-entry engine, chart of accounts, vouchers | **Done** (core + TB) |
 | 7 | GST, banking, financial statements, reconciliation | **P&L + BS + Cash Flow + ageing + GST (registers/GSTR-1/3B) + banking + reconciliation done**; e-invoice/e-way pending |
-| 8 | Costing, finishing, quality, dashboards | Cost centres + bath costing + **4 dashboards + web UI** done; finishing/quality pending |
+| 8 | Costing, finishing, quality, dashboards | Cost centres + bath costing + **finishing + quality + 4 dashboards + web UI** done |
 | 9 | Reports, security hardening, deployment | RBAC + Docker + API + **Excel/PDF exports** done; more report coverage + UI pending |
 
 ## Acceptance-test coverage (brief §23)

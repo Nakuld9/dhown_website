@@ -81,6 +81,14 @@ from app.models.dispensing import (  # noqa: F401
     IntegrationEvent,
 )
 from app.models.banking import BankReconciliation, BankStatementLine  # noqa: F401
+from app.models.quality import (  # noqa: F401
+    ComplaintStatus,
+    CustomerComplaint,
+    FinishingProcess,
+    FinishingTransaction,
+    InspectionResult,
+    QualityInspection,
+)
 
 # Registering the guard activates the immutable-ledger Session listeners.
 from app.core import ledger_guard  # noqa: E402,F401
