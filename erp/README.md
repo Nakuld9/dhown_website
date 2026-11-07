@@ -83,9 +83,10 @@ specified (pending-verification) Color Service dispensing integration.
   Chemical (dye/chemical cost, top consumption, stock alerts, dispensing errors).
 - **Web UI** — a self-contained React SPA (dark-navy sidebar, KPI cards, Recharts
   charts) served at **`/app/`**: four dashboards; **transaction entry** —
-  Purchase (GRN), Sales invoice, and a guided Dyeing flow (batch → bath →
-  simulate dispensing → live consumption register) that drives the real posting
-  engine and Color Service simulator; master management (customers, suppliers,
+  Purchase (GRN), Knitting production, Sales invoice, and a guided Dyeing flow
+  (batch → bath → simulate dispensing → live consumption register) that drives
+  the real posting engine and Color Service simulator; master management
+  (customers, suppliers,
   warehouses); **Quality & Finishing** and **Costing & Profitability** pages; and
   authenticated Excel/PDF report downloads. No build step and no runtime CDN —
   libraries are vendored and the JSX is precompiled.
@@ -93,7 +94,7 @@ specified (pending-verification) Color Service dispensing integration.
 **Platform** — JWT auth + RBAC (15 roles), REST API, Alembic migrations,
 idempotent seed + demo data, Docker Compose.
 
-`83 passing tests` cover the accounting invariants, the nine worked posting
+`85 passing tests` cover the accounting invariants, the nine worked posting
 examples, correction dosing, RBAC, full-cycle trial balance, procurement,
 knitting, recipe scaling, the full dispensing cycle, end-to-end traceability,
 the financial statements (P&L / Balance Sheet / Cash Flow / ageing), GST
@@ -108,6 +109,8 @@ REST flow. See the acceptance-test map below.
 | [`docs/ER_DIAGRAM.md`](docs/ER_DIAGRAM.md) | Mermaid ER diagrams + the master traceability chain |
 | [`docs/ACCOUNTING_POSTING_MATRIX.md`](docs/ACCOUNTING_POSTING_MATRIX.md) | Dr/Cr rules for every business event |
 | [`docs/COLOR_SERVICE_INTEGRATION.md`](docs/COLOR_SERVICE_INTEGRATION.md) | Dispensing integration spec, adapters, simulator |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Install, configure, back up / recover, upgrade, monitor |
+| [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) | Administrator guide + user guide by workflow |
 
 ## Quick start
 
@@ -176,7 +179,7 @@ erp/
     │   │                     #   banking, dashboard
     │   └── seed/             # chart of accounts, RBAC, seeder, demo data
     ├── alembic/              # migrations (baseline from metadata)
-    └── tests/                # 83 tests: invariants, posting matrix, TB, procurement,
+    └── tests/                # 85 tests: invariants, posting matrix, TB, procurement,
                               #   knitting, dyeing+dispensing, traceability, statements,
                               #   gst, banking, exports, dashboards, quality, API
 ```
