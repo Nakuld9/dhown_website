@@ -159,6 +159,55 @@ function useData(path) {
   }, [path]);
   return [d, err];
 }
+// loads a lookup list once; returns [] until ready
+function useList(path) {
+  const [d, setD] = useState([]);
+  useEffect(() => {
+    let on = true;
+    api(path).then(r => on && setD(r || [])).catch(() => {});
+    return () => {
+      on = false;
+    };
+  }, [path]);
+  return d;
+}
+function Opts({
+  items,
+  value,
+  onChange,
+  labelKey = "label",
+  valueKey = "id",
+  placeholder = "Select…"
+}) {
+  return /*#__PURE__*/React.createElement("select", {
+    value: value,
+    onChange: onChange
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, placeholder), items.map(o => /*#__PURE__*/React.createElement("option", {
+    key: o[valueKey],
+    value: o[valueKey]
+  }, o[labelKey] || o.name || o.code)));
+}
+function Result({
+  r
+}) {
+  return r ? /*#__PURE__*/React.createElement("div", {
+    className: "panel",
+    style: {
+      borderColor: "#bbf7d0",
+      background: "#f0fdf4"
+    }
+  }, /*#__PURE__*/React.createElement("b", null, "Posted."), " ", Object.entries(r).map(([k, v]) => /*#__PURE__*/React.createElement("span", {
+    key: k,
+    style: {
+      marginRight: 16
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "muted"
+  }, k, ":"), " ", String(v)))) : null;
+}
+const genNo = pfx => pfx + "-" + Date.now().toString().slice(-8);
 function OwnerDash() {
   const [d, err] = useData("/api/dashboard/owner");
   if (err) return /*#__PURE__*/React.createElement(Panel, null, err);
@@ -643,6 +692,606 @@ function Quality() {
   }, r.status)), /*#__PURE__*/React.createElement("td", null, r.description)))))));
 }
 
+// ---- masters: parties -----------------------------------------------------
+function PartyPage({
+  kind
+}) {
+  // kind: "customers" | "suppliers"
+  const [rows, setRows] = useState(null);
+  const [err, setErr] = useState("");
+  const [f, setF] = useState({
+    code: "",
+    name: "",
+    gstin: "",
+    state_code: ""
+  });
+  const load = useCallback(() => api(`/api/masters/${kind}`).then(setRows).catch(e => setErr(e.message)), [kind]);
+  useEffect(() => {
+    load();
+  }, [load]);
+  const add = async e => {
+    e.preventDefault();
+    setErr("");
+    try {
+      await api(`/api/masters/${kind}`, {
+        method: "POST",
+        body: f
+      });
+      setF({
+        code: "",
+        name: "",
+        gstin: "",
+        state_code: ""
+      });
+      load();
+    } catch (ex) {
+      setErr(ex.message);
+    }
+  };
+  const title = kind === "customers" ? "customer" : "supplier";
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Panel, {
+    title: "Add " + title
+  }, /*#__PURE__*/React.createElement("form", {
+    className: "row",
+    onSubmit: add
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Code"), /*#__PURE__*/React.createElement("input", {
+    required: true,
+    value: f.code,
+    onChange: e => setF({
+      ...f,
+      code: e.target.value
+    }),
+    placeholder: kind === "customers" ? "CUST-01" : "SUP-01"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Name"), /*#__PURE__*/React.createElement("input", {
+    required: true,
+    value: f.name,
+    onChange: e => setF({
+      ...f,
+      name: e.target.value
+    }),
+    placeholder: "Legal name"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "GSTIN"), /*#__PURE__*/React.createElement("input", {
+    value: f.gstin,
+    onChange: e => setF({
+      ...f,
+      gstin: e.target.value
+    }),
+    placeholder: "03ABCDE1234F1Z5"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "State code"), /*#__PURE__*/React.createElement("input", {
+    value: f.state_code,
+    onChange: e => setF({
+      ...f,
+      state_code: e.target.value
+    }),
+    placeholder: "03",
+    style: {
+      width: 70
+    }
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "btn"
+  }, "Add")), err && /*#__PURE__*/React.createElement("div", {
+    className: "err"
+  }, err)), /*#__PURE__*/React.createElement(Panel, {
+    title: title.charAt(0).toUpperCase() + title.slice(1) + "s"
+  }, !rows ? "Loading…" : /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Code"), /*#__PURE__*/React.createElement("th", null, "Name"), /*#__PURE__*/React.createElement("th", null, "GSTIN"), /*#__PURE__*/React.createElement("th", null, "State"))), /*#__PURE__*/React.createElement("tbody", null, rows.map(r => /*#__PURE__*/React.createElement("tr", {
+    key: r.id
+  }, /*#__PURE__*/React.createElement("td", null, r.code), /*#__PURE__*/React.createElement("td", null, r.name), /*#__PURE__*/React.createElement("td", null, r.gstin || "-"), /*#__PURE__*/React.createElement("td", null, r.state_code || "-")))))));
+}
+
+// ---- transactions: purchase (GRN) -----------------------------------------
+function Purchase() {
+  const suppliers = useList("/api/masters/suppliers");
+  const chemicals = useList("/api/masters/chemicals");
+  const warehouses = useList("/api/masters/warehouses");
+  const taxes = useList("/api/masters/tax-codes");
+  const [hdr, setHdr] = useState({
+    supplier_id: "",
+    number: genNo("GRN"),
+    grn_date: new Date().toISOString().slice(0, 10)
+  });
+  const [lines, setLines] = useState([{
+    chemical_id: "",
+    warehouse_id: "",
+    qty: "",
+    unit_cost: "",
+    tax_code_id: ""
+  }]);
+  const [res, setRes] = useState(null);
+  const [err, setErr] = useState("");
+  const setLine = (i, k, v) => setLines(ls => ls.map((l, j) => j === i ? {
+    ...l,
+    [k]: v
+  } : l));
+  const submit = async e => {
+    e.preventDefault();
+    setErr("");
+    setRes(null);
+    try {
+      const body = {
+        ...hdr,
+        lines: lines.map(l => ({
+          chemical_id: l.chemical_id,
+          warehouse_id: l.warehouse_id || null,
+          qty: l.qty,
+          unit_cost: l.unit_cost,
+          tax_code_id: l.tax_code_id || null
+        }))
+      };
+      const r = await api("/api/procurement/grn", {
+        method: "POST",
+        body
+      });
+      setRes(r);
+      setHdr({
+        ...hdr,
+        number: genNo("GRN")
+      });
+      setLines([{
+        chemical_id: "",
+        warehouse_id: "",
+        qty: "",
+        unit_cost: "",
+        tax_code_id: ""
+      }]);
+    } catch (ex) {
+      setErr(ex.message);
+    }
+  };
+  return /*#__PURE__*/React.createElement(Panel, {
+    title: "Goods Receipt Note (chemical / dye purchase)"
+  }, /*#__PURE__*/React.createElement("form", {
+    onSubmit: submit
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "row mb"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Supplier"), /*#__PURE__*/React.createElement(Opts, {
+    items: suppliers,
+    value: hdr.supplier_id,
+    onChange: e => setHdr({
+      ...hdr,
+      supplier_id: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "GRN number"), /*#__PURE__*/React.createElement("input", {
+    value: hdr.number,
+    onChange: e => setHdr({
+      ...hdr,
+      number: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Date"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: hdr.grn_date,
+    onChange: e => setHdr({
+      ...hdr,
+      grn_date: e.target.value
+    })
+  }))), /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Chemical"), /*#__PURE__*/React.createElement("th", null, "Warehouse"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Qty"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Unit cost"), /*#__PURE__*/React.createElement("th", null, "Tax"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, lines.map((l, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(Opts, {
+    items: chemicals,
+    value: l.chemical_id,
+    onChange: e => setLine(i, "chemical_id", e.target.value)
+  })), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(Opts, {
+    items: warehouses,
+    value: l.warehouse_id,
+    onChange: e => setLine(i, "warehouse_id", e.target.value),
+    placeholder: "\u2014"
+  })), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, /*#__PURE__*/React.createElement("input", {
+    style: {
+      width: 90
+    },
+    value: l.qty,
+    onChange: e => setLine(i, "qty", e.target.value)
+  })), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, /*#__PURE__*/React.createElement("input", {
+    style: {
+      width: 100
+    },
+    value: l.unit_cost,
+    onChange: e => setLine(i, "unit_cost", e.target.value)
+  })), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(Opts, {
+    items: taxes,
+    value: l.tax_code_id,
+    onChange: e => setLine(i, "tax_code_id", e.target.value),
+    placeholder: "\u2014"
+  })), /*#__PURE__*/React.createElement("td", null, lines.length > 1 && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "btn sec",
+    onClick: () => setLines(ls => ls.filter((_, j) => j !== i))
+  }, "\u2715")))))), /*#__PURE__*/React.createElement("div", {
+    className: "row",
+    style: {
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "btn sec",
+    onClick: () => setLines(ls => [...ls, {
+      chemical_id: "",
+      warehouse_id: "",
+      qty: "",
+      unit_cost: "",
+      tax_code_id: ""
+    }])
+  }, "+ Add line"), /*#__PURE__*/React.createElement("button", {
+    className: "btn"
+  }, "Post GRN")), err && /*#__PURE__*/React.createElement("div", {
+    className: "err"
+  }, err)), /*#__PURE__*/React.createElement(Result, {
+    r: res
+  }));
+}
+
+// ---- transactions: sales invoice ------------------------------------------
+function Sales() {
+  const customers = useList("/api/masters/customers");
+  const taxes = useList("/api/masters/tax-codes");
+  const [hdr, setHdr] = useState({
+    customer_id: "",
+    number: genNo("INV"),
+    invoice_date: new Date().toISOString().slice(0, 10)
+  });
+  const [lines, setLines] = useState([{
+    description: "",
+    qty: "",
+    rate: "",
+    tax_code_id: ""
+  }]);
+  const [res, setRes] = useState(null);
+  const [err, setErr] = useState("");
+  const setLine = (i, k, v) => setLines(ls => ls.map((l, j) => j === i ? {
+    ...l,
+    [k]: v
+  } : l));
+  const submit = async e => {
+    e.preventDefault();
+    setErr("");
+    setRes(null);
+    try {
+      const body = {
+        ...hdr,
+        lines: lines.map(l => ({
+          description: l.description,
+          qty: l.qty,
+          rate: l.rate,
+          tax_code_id: l.tax_code_id || null
+        }))
+      };
+      const r = await api("/api/sales/invoices", {
+        method: "POST",
+        body
+      });
+      setRes(r);
+      setHdr({
+        ...hdr,
+        number: genNo("INV")
+      });
+      setLines([{
+        description: "",
+        qty: "",
+        rate: "",
+        tax_code_id: ""
+      }]);
+    } catch (ex) {
+      setErr(ex.message);
+    }
+  };
+  return /*#__PURE__*/React.createElement(Panel, {
+    title: "Sales invoice (with GST)"
+  }, /*#__PURE__*/React.createElement("form", {
+    onSubmit: submit
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "row mb"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Customer"), /*#__PURE__*/React.createElement(Opts, {
+    items: customers,
+    value: hdr.customer_id,
+    onChange: e => setHdr({
+      ...hdr,
+      customer_id: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Invoice number"), /*#__PURE__*/React.createElement("input", {
+    value: hdr.number,
+    onChange: e => setHdr({
+      ...hdr,
+      number: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Date"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: hdr.invoice_date,
+    onChange: e => setHdr({
+      ...hdr,
+      invoice_date: e.target.value
+    })
+  }))), /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Description"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Qty"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Rate"), /*#__PURE__*/React.createElement("th", null, "Tax"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, lines.map((l, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("input", {
+    style: {
+      width: 260
+    },
+    value: l.description,
+    onChange: e => setLine(i, "description", e.target.value),
+    placeholder: "Dyed fabric"
+  })), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, /*#__PURE__*/React.createElement("input", {
+    style: {
+      width: 90
+    },
+    value: l.qty,
+    onChange: e => setLine(i, "qty", e.target.value)
+  })), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, /*#__PURE__*/React.createElement("input", {
+    style: {
+      width: 90
+    },
+    value: l.rate,
+    onChange: e => setLine(i, "rate", e.target.value)
+  })), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(Opts, {
+    items: taxes,
+    value: l.tax_code_id,
+    onChange: e => setLine(i, "tax_code_id", e.target.value),
+    placeholder: "\u2014"
+  })), /*#__PURE__*/React.createElement("td", null, lines.length > 1 && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "btn sec",
+    onClick: () => setLines(ls => ls.filter((_, j) => j !== i))
+  }, "\u2715")))))), /*#__PURE__*/React.createElement("div", {
+    className: "row",
+    style: {
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "btn sec",
+    onClick: () => setLines(ls => [...ls, {
+      description: "",
+      qty: "",
+      rate: "",
+      tax_code_id: ""
+    }])
+  }, "+ Add line"), /*#__PURE__*/React.createElement("button", {
+    className: "btn"
+  }, "Post invoice")), err && /*#__PURE__*/React.createElement("div", {
+    className: "err"
+  }, err)), /*#__PURE__*/React.createElement(Result, {
+    r: res
+  }));
+}
+
+// ---- transactions: dyeing (batch -> bath -> dispense -> register) ----------
+function Dyeing() {
+  const shades = useList("/api/masters/shades");
+  const machines = useList("/api/masters/machines?machine_type=DYEING");
+  const versions = useList("/api/masters/recipe-versions");
+  const [batch, setBatch] = useState(null);
+  const [bath, setBath] = useState(null);
+  const [order, setOrder] = useState(null);
+  const [disp, setDisp] = useState(null);
+  const [reg, setReg] = useState(null);
+  const [err, setErr] = useState("");
+  const [bf, setBf] = useState({
+    batch_code: genNo("DY"),
+    fabric_kg: "250",
+    shade_id: ""
+  });
+  const [hf, setHf] = useState({
+    bath_code: "",
+    machine_id: "",
+    recipe_version_id: "",
+    fabric_kg: "250"
+  });
+  const go = async fn => {
+    setErr("");
+    try {
+      await fn();
+    } catch (ex) {
+      setErr(ex.message);
+    }
+  };
+  const createBatch = () => go(async () => {
+    const r = await api("/api/dyeing/batches", {
+      method: "POST",
+      body: bf
+    });
+    setBatch(r);
+    setHf({
+      ...hf,
+      bath_code: r.batch_code + "-B01",
+      fabric_kg: bf.fabric_kg
+    });
+  });
+  const createBath = () => go(async () => {
+    const r = await api("/api/dyeing/baths", {
+      method: "POST",
+      body: {
+        ...hf,
+        batch_id: batch.batch_id
+      }
+    });
+    setBath(r);
+    setOrder(null);
+    setDisp(null);
+    setReg(null);
+  });
+  const preview = () => go(async () => setOrder(await api(`/api/dyeing/baths/${bath.bath_id}/dose-order`)));
+  const dispense = () => go(async () => {
+    setDisp(await api(`/api/dyeing/baths/${bath.bath_id}/simulate-dispense`, {
+      method: "POST"
+    }));
+    setReg(await api(`/api/dyeing/baths/${bath.bath_id}/consumption-register`));
+  });
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Panel, {
+    title: "1 \xB7 Create dye batch"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "row"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Batch code"), /*#__PURE__*/React.createElement("input", {
+    value: bf.batch_code,
+    onChange: e => setBf({
+      ...bf,
+      batch_code: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Fabric (kg)"), /*#__PURE__*/React.createElement("input", {
+    value: bf.fabric_kg,
+    onChange: e => setBf({
+      ...bf,
+      fabric_kg: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Shade"), /*#__PURE__*/React.createElement(Opts, {
+    items: shades,
+    value: bf.shade_id,
+    onChange: e => setBf({
+      ...bf,
+      shade_id: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "btn",
+    onClick: createBatch
+  }, "Create batch")), batch && /*#__PURE__*/React.createElement("div", {
+    className: "muted",
+    style: {
+      marginTop: 10
+    }
+  }, "Batch ", batch.batch_code, " created \u2713")), batch && /*#__PURE__*/React.createElement(Panel, {
+    title: "2 \xB7 Add bath (approved recipe)"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "row"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Bath code"), /*#__PURE__*/React.createElement("input", {
+    value: hf.bath_code,
+    onChange: e => setHf({
+      ...hf,
+      bath_code: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Machine"), /*#__PURE__*/React.createElement(Opts, {
+    items: machines,
+    value: hf.machine_id,
+    onChange: e => setHf({
+      ...hf,
+      machine_id: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Recipe version"), /*#__PURE__*/React.createElement(Opts, {
+    items: versions,
+    value: hf.recipe_version_id,
+    onChange: e => setHf({
+      ...hf,
+      recipe_version_id: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Fabric (kg)"), /*#__PURE__*/React.createElement("input", {
+    value: hf.fabric_kg,
+    onChange: e => setHf({
+      ...hf,
+      fabric_kg: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "btn",
+    onClick: createBath
+  }, "Create bath")), bath && /*#__PURE__*/React.createElement("div", {
+    className: "row",
+    style: {
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "muted",
+    style: {
+      alignSelf: "center"
+    }
+  }, "Bath ", bath.bath_code, " \u2713"), /*#__PURE__*/React.createElement("button", {
+    className: "btn sec",
+    onClick: preview
+  }, "Preview dose order"), /*#__PURE__*/React.createElement("button", {
+    className: "btn",
+    onClick: dispense
+  }, "Simulate dispensing"))), order && /*#__PURE__*/React.createElement(Panel, {
+    title: "Scaled dose order (ERP \u2192 Color Service)"
+  }, /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Seq"), /*#__PURE__*/React.createElement("th", null, "Material"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Target (kg)"), /*#__PURE__*/React.createElement("th", null, "Dye?"))), /*#__PURE__*/React.createElement("tbody", null, order.materials.map((m, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, m.sequence), /*#__PURE__*/React.createElement("td", null, m.material_code), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, m.target_qty), /*#__PURE__*/React.createElement("td", null, m.is_dye ? "Dye" : "Aux")))))), disp && /*#__PURE__*/React.createElement("div", {
+    className: "cards"
+  }, /*#__PURE__*/React.createElement(Kpi, {
+    label: "Dispensed lines",
+    value: disp.processed
+  }), /*#__PURE__*/React.createElement(Kpi, {
+    label: "Skipped (replay)",
+    value: disp.skipped
+  }), /*#__PURE__*/React.createElement(Kpi, {
+    label: "Consumption cost",
+    value: inr(disp.total_cost)
+  })), reg && /*#__PURE__*/React.createElement(Panel, {
+    title: "Bath consumption register (recipe vs actual)"
+  }, /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Material"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Recipe"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Actual"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Variance"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Cost"))), /*#__PURE__*/React.createElement("tbody", null, reg.rows.map((r, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, r.material_code), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, r.recipe_target_kg), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, r.actual_kg), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, r.variance_kg), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, inr2(r.cost))))), /*#__PURE__*/React.createElement("tfoot", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Total"), /*#__PURE__*/React.createElement("th", null), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, reg.total_actual_kg), /*#__PURE__*/React.createElement("th", null), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, inr2(reg.total_cost)))))), err && /*#__PURE__*/React.createElement(Panel, null, /*#__PURE__*/React.createElement("div", {
+    className: "err"
+  }, err)));
+}
+
 // ---- shell ----------------------------------------------------------------
 const PAGES = {
   owner: {
@@ -660,6 +1309,30 @@ const PAGES = {
   chemical: {
     t: "Chemical Dashboard",
     c: ChemicalDash
+  },
+  purchase: {
+    t: "Purchase (GRN)",
+    c: Purchase
+  },
+  sales: {
+    t: "Sales Invoice",
+    c: Sales
+  },
+  dyeing: {
+    t: "Dyeing & Dispensing",
+    c: Dyeing
+  },
+  customers: {
+    t: "Customers",
+    c: () => /*#__PURE__*/React.createElement(PartyPage, {
+      kind: "customers"
+    })
+  },
+  suppliers: {
+    t: "Suppliers",
+    c: () => /*#__PURE__*/React.createElement(PartyPage, {
+      kind: "suppliers"
+    })
   },
   warehouses: {
     t: "Warehouses",
@@ -697,7 +1370,9 @@ function App() {
     className: "group"
   }, "Dashboards"), navBtn("owner", "Owner"), navBtn("factory", "Factory"), navBtn("accounts", "Accounts"), navBtn("chemical", "Chemical"), /*#__PURE__*/React.createElement("div", {
     className: "group"
-  }, "Masters"), navBtn("warehouses", "Warehouses"), /*#__PURE__*/React.createElement("div", {
+  }, "Transactions"), navBtn("purchase", "Purchase (GRN)"), navBtn("sales", "Sales Invoice"), navBtn("dyeing", "Dyeing & Dispensing"), /*#__PURE__*/React.createElement("div", {
+    className: "group"
+  }, "Masters"), navBtn("customers", "Customers"), navBtn("suppliers", "Suppliers"), navBtn("warehouses", "Warehouses"), /*#__PURE__*/React.createElement("div", {
     className: "group"
   }, "Quality"), navBtn("quality", "Quality"), /*#__PURE__*/React.createElement("div", {
     className: "group"

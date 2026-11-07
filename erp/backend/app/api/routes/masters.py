@@ -8,7 +8,17 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import require_permission
 from app.models.core import User
-from app.models.masters import Customer, Supplier, Warehouse
+from app.models.masters import (
+    Chemical,
+    Customer,
+    Machine,
+    Recipe,
+    RecipeVersion,
+    ShadeCode,
+    Supplier,
+    TaxCode,
+    Warehouse,
+)
 from app.schemas import CustomerCreate, PartyOut, SupplierCreate, WarehouseCreate, WarehouseOut
 
 router = APIRouter(prefix="/api/masters", tags=["masters"])
@@ -99,3 +109,48 @@ def create_warehouse(
     db.commit()
     db.refresh(wh)
     return wh
+
+
+# --- read-only lookup lists (populate transaction-entry dropdowns) ----------
+
+@router.get("/chemicals")
+def list_chemicals(db: Session = Depends(get_db), user: User = Depends(require_permission("master.read"))):
+    rows = db.execute(select(Chemical).where(
+        Chemical.company_id == user.company_id, Chemical.is_active.is_(True)).order_by(Chemical.code)).scalars().all()
+    return [{"id": str(c.id), "code": c.code, "name": c.name, "is_dye": c.is_dye,
+             "tax_code_id": str(c.tax_code_id) if c.tax_code_id else None} for c in rows]
+
+
+@router.get("/tax-codes")
+def list_tax_codes(db: Session = Depends(get_db), user: User = Depends(require_permission("master.read"))):
+    rows = db.execute(select(TaxCode).where(
+        TaxCode.company_id == user.company_id, TaxCode.is_active.is_(True)).order_by(TaxCode.code)).scalars().all()
+    return [{"id": str(t.id), "code": t.code, "name": t.name} for t in rows]
+
+
+@router.get("/machines")
+def list_machines(machine_type: str | None = None, db: Session = Depends(get_db),
+                  user: User = Depends(require_permission("master.read"))):
+    stmt = select(Machine).where(Machine.company_id == user.company_id, Machine.is_active.is_(True))
+    if machine_type:
+        stmt = stmt.where(Machine.machine_type == machine_type)
+    rows = db.execute(stmt.order_by(Machine.code)).scalars().all()
+    return [{"id": str(m.id), "code": m.code, "name": m.name, "machine_type": m.machine_type} for m in rows]
+
+
+@router.get("/shades")
+def list_shades(db: Session = Depends(get_db), user: User = Depends(require_permission("master.read"))):
+    rows = db.execute(select(ShadeCode).where(
+        ShadeCode.company_id == user.company_id, ShadeCode.is_active.is_(True)).order_by(ShadeCode.code)).scalars().all()
+    return [{"id": str(s.id), "code": s.code, "name": s.name} for s in rows]
+
+
+@router.get("/recipe-versions")
+def list_recipe_versions(db: Session = Depends(get_db), user: User = Depends(require_permission("master.read"))):
+    rows = db.execute(
+        select(RecipeVersion, Recipe).join(Recipe, RecipeVersion.recipe_id == Recipe.id).where(
+            Recipe.company_id == user.company_id, RecipeVersion.status == "APPROVED")
+        .order_by(Recipe.code, RecipeVersion.version_no)
+    ).all()
+    return [{"id": str(v.id), "label": f"{r.code} v{v.version_no}", "recipe_code": r.code,
+             "version_no": v.version_no} for v, r in rows]
