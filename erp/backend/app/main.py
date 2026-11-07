@@ -10,6 +10,7 @@ from app.api.routes import (
     accounts,
     auth,
     banking,
+    costing,
     dashboard,
     masters,
     operations,
@@ -38,6 +39,7 @@ app.include_router(operations.router)
 app.include_router(banking.router)
 app.include_router(dashboard.router)
 app.include_router(quality.router)
+app.include_router(costing.router)
 
 
 @app.get("/health", tags=["system"])

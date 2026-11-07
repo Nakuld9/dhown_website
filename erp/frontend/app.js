@@ -1292,6 +1292,98 @@ function Dyeing() {
   }, err)));
 }
 
+// ---- costing --------------------------------------------------------------
+function Costing() {
+  const [cpk, errc] = useData("/api/costing/cost-per-kg");
+  const custs = useList("/api/costing/customers");
+  const orders = useList("/api/costing/orders");
+  const machines = useList("/api/costing/machines");
+  const pct = v => Number(v || 0).toFixed(1) + "%";
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "cards"
+  }, /*#__PURE__*/React.createElement(Kpi, {
+    label: "Knitted cost / kg",
+    value: cpk ? inr(cpk.knitted_cost_per_kg) : "…"
+  }), /*#__PURE__*/React.createElement(Kpi, {
+    label: "Dyeing cost / kg",
+    value: cpk ? inr(cpk.dyeing_cost_per_kg) : "…"
+  }), /*#__PURE__*/React.createElement(Kpi, {
+    label: "Knitted output (kg)",
+    value: cpk ? inr2(cpk.knitted_kg) : "…"
+  }), /*#__PURE__*/React.createElement(Kpi, {
+    label: "Dyed output (kg)",
+    value: cpk ? inr2(cpk.dyed_kg) : "…"
+  })), /*#__PURE__*/React.createElement(Panel, {
+    title: "Customer profitability"
+  }, custs.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "muted"
+  }, "No billed customers yet.") : /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Customer"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Revenue"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Cost"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Gross profit"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Margin"))), /*#__PURE__*/React.createElement("tbody", null, custs.map((c, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, c.customer), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, inr2(c.revenue)), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, inr2(c.cost)), /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: {
+      color: Number(c.gross_profit) >= 0 ? "#16a34a" : "#dc2626"
+    }
+  }, inr2(c.gross_profit)), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, pct(c.margin_pct))))))), /*#__PURE__*/React.createElement(Panel, {
+    title: "Order profitability"
+  }, orders.filter(o => Number(o.revenue) || Number(o.total_cost)).length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "muted"
+  }, "No orders with activity yet.") : /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Order"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Revenue"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Yarn"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Dyeing"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Total cost"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Gross profit"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Margin"))), /*#__PURE__*/React.createElement("tbody", null, orders.filter(o => Number(o.revenue) || Number(o.total_cost)).map((o, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, o.order_number), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, inr2(o.revenue)), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, inr2(o.yarn_cost)), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, inr2(o.dyeing_cost)), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, inr2(o.total_cost)), /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: {
+      color: Number(o.gross_profit) >= 0 ? "#16a34a" : "#dc2626"
+    }
+  }, inr2(o.gross_profit)), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, pct(o.margin_pct))))))), /*#__PURE__*/React.createElement(Panel, {
+    title: "Machine-wise cost"
+  }, machines.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "muted"
+  }, "No machine cost yet.") : /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Machine"), /*#__PURE__*/React.createElement("th", null, "Type"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Cost"))), /*#__PURE__*/React.createElement("tbody", null, machines.map((m, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, m.machine), /*#__PURE__*/React.createElement("td", null, m.machine_type), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, inr2(m.cost))))))));
+}
+
 // ---- shell ----------------------------------------------------------------
 const PAGES = {
   owner: {
@@ -1342,6 +1434,10 @@ const PAGES = {
     t: "Quality & Finishing",
     c: Quality
   },
+  costing: {
+    t: "Costing & Profitability",
+    c: Costing
+  },
   reports: {
     t: "Reports",
     c: Reports
@@ -1375,6 +1471,8 @@ function App() {
   }, "Masters"), navBtn("customers", "Customers"), navBtn("suppliers", "Suppliers"), navBtn("warehouses", "Warehouses"), /*#__PURE__*/React.createElement("div", {
     className: "group"
   }, "Quality"), navBtn("quality", "Quality"), /*#__PURE__*/React.createElement("div", {
+    className: "group"
+  }, "Costing"), navBtn("costing", "Costing"), /*#__PURE__*/React.createElement("div", {
     className: "group"
   }, "Reports"), navBtn("reports", "Reports"), /*#__PURE__*/React.createElement("div", {
     className: "group"
