@@ -50,6 +50,9 @@ class StockLayer(AuditMixin, Base):
     qty_in: Mapped[object] = mapped_column(Quantity, default=0)
     qty_remaining: Mapped[object] = mapped_column(Quantity, default=0, index=True)
     unit_cost: Mapped[object] = mapped_column(Money, default=0)
+    # Remaining *value* is tracked explicitly (received value minus costs taken
+    # out), so the sub-ledger ties to the GL to the paisa despite rounding.
+    value_remaining: Mapped[object] = mapped_column(Money, default=0)
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
     source_module: Mapped[str | None] = mapped_column(String(40), nullable=True)
     source_id: Mapped[str | None] = mapped_column(String(80), nullable=True)

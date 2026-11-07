@@ -14,6 +14,7 @@ from app.models.core import User
 from app.services import exports
 from app.services.accounting import financial_statements as fs
 from app.services.accounting import gst as gst_svc
+from app.services.accounting import stock_reconciliation as stock_recon
 from app.services.accounting import trial_balance as tb
 from app.services.exports import builders as export_builders
 
@@ -155,6 +156,12 @@ def gst_reconciliation(date_from: date | None = None, date_to: date | None = Non
                        user: User = Depends(require_permission("report.financial"))) -> dict:
     frm, to = _range(date_from, date_to)
     return _stringify(gst_svc.book_vs_gst_reconciliation(db, user.company_id, frm, to))
+
+
+@router.get("/stock-reconciliation")
+def stock_reconciliation(as_of: date | None = None, db: Session = Depends(get_db),
+                         user: User = Depends(require_permission("report.financial"))) -> dict:
+    return _stringify(stock_recon.stock_ledger_reconciliation(db, user.company_id, as_of=as_of))
 
 
 _MEDIA = {

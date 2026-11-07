@@ -48,10 +48,11 @@ def receive(
     if qty <= QZERO:
         raise ValueError("Receipt quantity must be positive")
 
+    received_value = quantize(qty * unit_cost, MONEY_SCALE)
     layer = StockLayer(
         company_id=company_id, item_type=item_type.value if isinstance(item_type, ItemType) else item_type,
         item_id=item_id, lot_id=lot_id, warehouse_id=warehouse_id,
-        qty_in=qty, qty_remaining=qty, unit_cost=unit_cost,
+        qty_in=qty, qty_remaining=qty, unit_cost=unit_cost, value_remaining=received_value,
         source_module=source_module, source_id=source_id,
     )
     db.add(layer)
@@ -59,7 +60,7 @@ def receive(
     db.add(InventoryTransaction(
         company_id=company_id, item_type=layer.item_type, item_id=item_id, lot_id=lot_id,
         layer_id=layer.id, warehouse_id=warehouse_id, direction=MoveDirection.IN.value,
-        qty=qty, unit_cost=unit_cost, total_cost=quantize(qty * unit_cost, MONEY_SCALE),
+        qty=qty, unit_cost=unit_cost, total_cost=received_value,
         event_type=event_type, source_module=source_module, source_id=source_id,
         posting_reference=posting_reference,
     ))
@@ -115,8 +116,17 @@ def consume(
             break
         take = layer.qty_remaining if layer.qty_remaining <= remaining else remaining
         take = quantize(take, QTY_SCALE)
+        whole_layer = take >= layer.qty_remaining
         layer.qty_remaining = quantize(layer.qty_remaining - take, QTY_SCALE)
-        line_cost = quantize(take * layer.unit_cost, MONEY_SCALE)
+        # Take the layer's whole remaining value when it is emptied, so no
+        # rounding dust is left behind; otherwise cost the partial draw.
+        if whole_layer:
+            line_cost = layer.value_remaining
+        else:
+            line_cost = quantize(take * layer.unit_cost, MONEY_SCALE)
+            if line_cost > layer.value_remaining:
+                line_cost = layer.value_remaining
+        layer.value_remaining = quantize(layer.value_remaining - line_cost, MONEY_SCALE)
         total_cost += line_cost
         remaining = quantize(remaining - take, QTY_SCALE)
         db.add(InventoryTransaction(
@@ -146,5 +156,5 @@ def balance(db: Session, *, company_id: uuid.UUID, item_type: ItemType, item_id:
     value = MZERO
     for layer in db.execute(stmt).scalars():
         qty_on_hand += layer.qty_remaining
-        value += quantize(layer.qty_remaining * layer.unit_cost, MONEY_SCALE)
+        value += layer.value_remaining or MZERO
     return {"qty_on_hand": qty_on_hand, "value": value}
