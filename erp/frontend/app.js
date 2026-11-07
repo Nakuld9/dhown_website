@@ -490,6 +490,159 @@ function Reports() {
   }, busy === id ? "…" : "Download")))))));
 }
 
+// ---- quality --------------------------------------------------------------
+const RESULT_CLS = {
+  ACCEPT: "ok",
+  REWORK: "warn",
+  REJECT: "bad"
+};
+function Quality() {
+  const [sum, setSum] = useState(null);
+  const [insp, setInsp] = useState([]);
+  const [comp, setComp] = useState([]);
+  const [err, setErr] = useState("");
+  const [f, setF] = useState({
+    delta_e: "",
+    shade_match: true,
+    inspected_qty: "",
+    rejection_qty: "",
+    colour_fastness: ""
+  });
+  const load = useCallback(() => {
+    api("/api/quality/summary").then(setSum).catch(e => setErr(e.message));
+    api("/api/quality/inspections").then(setInsp).catch(() => {});
+    api("/api/quality/complaints").then(setComp).catch(() => {});
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+  const add = async e => {
+    e.preventDefault();
+    setErr("");
+    const body = {
+      inspection_date: new Date().toISOString().slice(0, 10),
+      delta_e: f.delta_e || null,
+      shade_match: f.shade_match,
+      inspected_qty: f.inspected_qty || null,
+      rejection_qty: f.rejection_qty || null,
+      colour_fastness: f.colour_fastness || null
+    };
+    try {
+      await api("/api/quality/inspections", {
+        method: "POST",
+        body
+      });
+      setF({
+        delta_e: "",
+        shade_match: true,
+        inspected_qty: "",
+        rejection_qty: "",
+        colour_fastness: ""
+      });
+      load();
+    } catch (ex) {
+      setErr(ex.message);
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "cards"
+  }, /*#__PURE__*/React.createElement(Kpi, {
+    label: "Inspections",
+    value: sum ? sum.inspections : "…"
+  }), /*#__PURE__*/React.createElement(Kpi, {
+    label: "Accepted",
+    value: sum ? sum.accepted : "…",
+    cls: "pos"
+  }), /*#__PURE__*/React.createElement(Kpi, {
+    label: "Rework",
+    value: sum ? sum.rework : "…"
+  }), /*#__PURE__*/React.createElement(Kpi, {
+    label: "Rejected",
+    value: sum ? sum.rejected : "…",
+    cls: sum && sum.rejected ? "neg" : ""
+  }), /*#__PURE__*/React.createElement(Kpi, {
+    label: "Rejection rate",
+    value: sum ? Number(sum.rejection_rate_pct).toFixed(1) + "%" : "…"
+  }), /*#__PURE__*/React.createElement(Kpi, {
+    label: "Open complaints",
+    value: sum ? sum.open_complaints : "…",
+    cls: sum && sum.open_complaints ? "neg" : ""
+  })), /*#__PURE__*/React.createElement(Panel, {
+    title: "Record inspection"
+  }, /*#__PURE__*/React.createElement("form", {
+    className: "row",
+    onSubmit: add
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Delta E"), /*#__PURE__*/React.createElement("input", {
+    value: f.delta_e,
+    onChange: e => setF({
+      ...f,
+      delta_e: e.target.value
+    }),
+    placeholder: "0.8"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Inspected qty"), /*#__PURE__*/React.createElement("input", {
+    value: f.inspected_qty,
+    onChange: e => setF({
+      ...f,
+      inspected_qty: e.target.value
+    }),
+    placeholder: "100"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Rejection qty"), /*#__PURE__*/React.createElement("input", {
+    value: f.rejection_qty,
+    onChange: e => setF({
+      ...f,
+      rejection_qty: e.target.value
+    }),
+    placeholder: "0"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Fastness"), /*#__PURE__*/React.createElement("input", {
+    value: f.colour_fastness,
+    onChange: e => setF({
+      ...f,
+      colour_fastness: e.target.value
+    }),
+    placeholder: "4-5"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Shade match"), /*#__PURE__*/React.createElement("select", {
+    value: f.shade_match ? "yes" : "no",
+    onChange: e => setF({
+      ...f,
+      shade_match: e.target.value === "yes"
+    })
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "yes"
+  }, "Yes"), /*#__PURE__*/React.createElement("option", {
+    value: "no"
+  }, "No"))), /*#__PURE__*/React.createElement("button", {
+    className: "btn"
+  }, "Record (auto-grades result)")), err && /*#__PURE__*/React.createElement("div", {
+    className: "err"
+  }, err)), /*#__PURE__*/React.createElement(Panel, {
+    title: "Recent inspections"
+  }, insp.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "muted"
+  }, "No inspections yet.") : /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "No."), /*#__PURE__*/React.createElement("th", null, "Date"), /*#__PURE__*/React.createElement("th", null, "Delta E"), /*#__PURE__*/React.createElement("th", null, "Fastness"), /*#__PURE__*/React.createElement("th", null, "Result"))), /*#__PURE__*/React.createElement("tbody", null, insp.slice(0, 15).map(r => /*#__PURE__*/React.createElement("tr", {
+    key: r.id
+  }, /*#__PURE__*/React.createElement("td", null, r.number), /*#__PURE__*/React.createElement("td", null, r.inspection_date), /*#__PURE__*/React.createElement("td", null, r.delta_e || "-"), /*#__PURE__*/React.createElement("td", null, r.colour_fastness || "-"), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+    className: "badge " + (RESULT_CLS[r.result] || "")
+  }, r.result))))))), /*#__PURE__*/React.createElement(Panel, {
+    title: "Customer complaints"
+  }, comp.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "muted"
+  }, "No complaints.") : /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "No."), /*#__PURE__*/React.createElement("th", null, "Date"), /*#__PURE__*/React.createElement("th", null, "Severity"), /*#__PURE__*/React.createElement("th", null, "Status"), /*#__PURE__*/React.createElement("th", null, "Description"))), /*#__PURE__*/React.createElement("tbody", null, comp.slice(0, 15).map(r => /*#__PURE__*/React.createElement("tr", {
+    key: r.id
+  }, /*#__PURE__*/React.createElement("td", null, r.number), /*#__PURE__*/React.createElement("td", null, r.complaint_date), /*#__PURE__*/React.createElement("td", null, r.severity), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+    className: "badge " + (r.status === "OPEN" ? "warn" : "ok")
+  }, r.status)), /*#__PURE__*/React.createElement("td", null, r.description)))))));
+}
+
 // ---- shell ----------------------------------------------------------------
 const PAGES = {
   owner: {
@@ -511,6 +664,10 @@ const PAGES = {
   warehouses: {
     t: "Warehouses",
     c: Warehouses
+  },
+  quality: {
+    t: "Quality & Finishing",
+    c: Quality
   },
   reports: {
     t: "Reports",
@@ -541,6 +698,8 @@ function App() {
   }, "Dashboards"), navBtn("owner", "Owner"), navBtn("factory", "Factory"), navBtn("accounts", "Accounts"), navBtn("chemical", "Chemical"), /*#__PURE__*/React.createElement("div", {
     className: "group"
   }, "Masters"), navBtn("warehouses", "Warehouses"), /*#__PURE__*/React.createElement("div", {
+    className: "group"
+  }, "Quality"), navBtn("quality", "Quality"), /*#__PURE__*/React.createElement("div", {
     className: "group"
   }, "Reports"), navBtn("reports", "Reports"), /*#__PURE__*/React.createElement("div", {
     className: "group"
